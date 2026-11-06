@@ -84,13 +84,13 @@ function ensureChunk(cx,cz){
   }
   mesh.instanceMatrix.needsUpdate=true;mesh.computeBoundingSphere();group.add(mesh);
  }
- const floor=new THREE.Mesh(new THREE.PlaneGeometry(CHUNK*CELL,CHUNK*CELL),makeMat(0x77734c));floor.rotation.x=-Math.PI/2;floor.position.set(cx*CHUNK*CELL, -.28,cz*CHUNK*CELL);group.add(floor);
+ const floor=new THREE.Mesh(new THREE.PlaneGeometry(CHUNK*CELL,CHUNK*CELL),makeCarpetMaterial());floor.rotation.x=-Math.PI/2;floor.position.set(cx*CHUNK*CELL, -.28,cz*CHUNK*CELL);group.add(floor);
  const ceiling=new THREE.Mesh(new THREE.PlaneGeometry(CHUNK*CELL,CHUNK*CELL),makeCeilingMaterial());ceiling.rotation.x=Math.PI/2;ceiling.position.set(cx*CHUNK*CELL,4.3,cz*CHUNK*CELL);group.add(ceiling);
  const rnd=randomFor(cx+7919,cz-104729);
- for(let n=0;n<2;n++){
+ for(let n=0;n<6;n++){
   const x=1+Math.floor(rnd()*7)*2,z=1+Math.floor(rnd()*7)*2;if(map[z][x])continue;
   const gx=cx*CHUNK+x-7,gz=cz*CHUNK+z-7,p=cellCenter(gx,gz);
-  const tile=new THREE.Mesh(new THREE.BoxGeometry(2.2,.06,1.1),new THREE.MeshStandardMaterial({color:0xfff5c2,emissive:0xffe99a,emissiveIntensity:1.6}));tile.position.set(p.x,4.01,p.z);group.add(tile);
+  const tile=new THREE.Mesh(new THREE.BoxGeometry(2.4,.06,1.25),new THREE.MeshStandardMaterial({color:0xfff5c2,emissive:0xffe99a,emissiveIntensity:1.8}));tile.position.set(p.x,4.01,p.z);group.add(tile);
 
  }
  scene.add(group);loadedChunks.set(key,{group});
@@ -113,6 +113,14 @@ function makeWallpaperMaterial(){
  ctx.putImageData(img,0,0);
  for(let x=0;x<256;x+=64){ctx.fillStyle='rgba(91,75,35,.12)';ctx.fillRect(x,0,2,256);ctx.fillStyle='rgba(255,241,177,.12)';ctx.fillRect(x+2,0,2,256)}
  for(let y=34;y<256;y+=71){ctx.fillStyle='rgba(93,79,42,.035)';ctx.fillRect(0,y,256,1)}
+ // Subtle repeating vintage wallpaper motif, inspired by old hotel interiors.
+ for(let y=0;y<256;y+=64)for(let x=0;x<256;x+=64){
+  ctx.save();ctx.translate(x+32,y+32);ctx.strokeStyle='rgba(91,72,30,.22)';ctx.fillStyle='rgba(229,207,133,.16)';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(0,-24);ctx.bezierCurveTo(19,-13,19,13,0,24);ctx.bezierCurveTo(-19,13,-19,-13,0,-24);ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.moveTo(0,-18);ctx.lineTo(10,0);ctx.lineTo(0,18);ctx.lineTo(-10,0);ctx.closePath();ctx.stroke();
+  for(let a=0;a<4;a++){ctx.save();ctx.rotate(a*Math.PI/2);ctx.beginPath();ctx.ellipse(0,-10,4,8,0,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.restore()}
+  ctx.beginPath();ctx.arc(0,0,3,0,Math.PI*2);ctx.fill();ctx.restore();
+ }
  const tex=new THREE.CanvasTexture(canvas);tex.wrapS=THREE.RepeatWrapping;tex.wrapT=THREE.RepeatWrapping;tex.colorSpace=THREE.SRGBColorSpace;
  wallpaperMaterial=new THREE.MeshStandardMaterial({map:tex,color:0xffffff,roughness:1});return wallpaperMaterial;
 }
@@ -146,6 +154,21 @@ function makeCeilingMaterial(){
  }
  const tex=new THREE.CanvasTexture(canvas);tex.wrapS=THREE.RepeatWrapping;tex.wrapT=THREE.RepeatWrapping;tex.colorSpace=THREE.SRGBColorSpace;
  ceilingMaterial=new THREE.MeshStandardMaterial({map:tex,color:0xffffff,emissive:0x8b7947,emissiveIntensity:.42,roughness:1,side:THREE.FrontSide});return ceilingMaterial;
+}
+let carpetMaterial=null;
+function makeCarpetMaterial(){
+ if(carpetMaterial)return carpetMaterial;
+ const canvas=document.createElement('canvas');canvas.width=256;canvas.height=256;
+ const ctx=canvas.getContext('2d'),img=ctx.createImageData(256,256);let seed=73129;
+ for(let y=0;y<256;y++)for(let x=0;x<256;x++){
+  seed=(seed*1664525+1013904223)>>>0;const n=((seed>>>24)&255)-128;
+  const wave=Math.sin(x*.11+y*.07)*3+Math.sin(y*.19-x*.035)*2,i=(y*256+x)*4,v=n*.22+wave;
+  img.data[i]=Math.max(0,181+v);img.data[i+1]=Math.max(0,151+v);img.data[i+2]=Math.max(0,83+v*.75);img.data[i+3]=255;
+ }
+ ctx.putImageData(img,0,0);
+ for(let y=0;y<256;y+=4)for(let x=(y%8?0:2);x<256;x+=7){ctx.fillStyle='rgba(91,65,30,.12)';ctx.fillRect(x,y,2,1)}
+ const tex=new THREE.CanvasTexture(canvas);tex.wrapS=THREE.RepeatWrapping;tex.wrapT=THREE.RepeatWrapping;tex.repeat.set(7,7);tex.colorSpace=THREE.SRGBColorSpace;
+ carpetMaterial=new THREE.MeshStandardMaterial({map:tex,color:0xffffff,roughness:1,emissive:0x211506,emissiveIntensity:.12});return carpetMaterial;
 }
 function makeMat(color,rough=1){return new THREE.MeshStandardMaterial({color,roughness:rough})}
 function box(w,h,d,mat,x,y,z){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;scene.add(m);return m}
