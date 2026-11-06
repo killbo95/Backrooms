@@ -2,105 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="refresh" content="0;url=game/">
 <title>THE BACKROOMS — Level 0</title>
-<style>
-:root{--yellow:#d5c66b;--ink:#080a08;--paper:#e9e2bd}*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#090a08;color:var(--paper);font-family:Arial,Helvetica,sans-serif}canvas{display:block}#game{position:fixed;inset:0}#vignette{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 35%,rgba(0,0,0,.2) 75%,rgba(0,0,0,.78) 130%);z-index:2}#grain{position:fixed;inset:-50%;width:200%;height:200%;z-index:3;pointer-events:none;opacity:.055;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.8'/%3E%3C/svg%3E");animation:grain .2s steps(2) infinite}@keyframes grain{0%{transform:translate(0,0)}25%{transform:translate(2%,-1%)}50%{transform:translate(-1%,2%)}75%{transform:translate(1%,1%)}}#hud{position:fixed;inset:0;z-index:5;pointer-events:none;display:none}.top{position:absolute;top:22px;left:26px;right:26px;display:flex;justify-content:space-between;align-items:flex-start;text-shadow:0 2px 8px #000}.brand{font-size:11px;letter-spacing:.28em;color:#d9cf9a}.objective{font-size:12px;letter-spacing:.12em;text-align:right;color:#e8e0bd}.objective strong{display:block;font-size:18px;margin-top:7px;color:#fff}.bottom{position:absolute;bottom:24px;left:26px;right:26px;display:flex;justify-content:space-between;align-items:end}.meter{width:170px;font-size:10px;letter-spacing:.18em;color:#c8c19f}.bar{height:4px;background:#39372a;margin-top:8px;width:100%;overflow:hidden}.bar span{display:block;height:100%;width:100%;background:#d4c66e;transition:width .12s}.hint{font-size:11px;letter-spacing:.12em;color:#ddd7bc;text-align:right;line-height:1.8}.crosshair{position:absolute;left:50%;top:50%;width:5px;height:5px;border:1px solid rgba(255,255,255,.7);border-radius:50%;transform:translate(-50%,-50%)}#message{position:absolute;left:50%;top:63%;transform:translate(-50%,-50%);font-size:12px;letter-spacing:.16em;text-align:center;color:#eee5bc;text-shadow:0 2px 8px #000;white-space:nowrap;opacity:0;transition:opacity .2s}#overlay{position:fixed;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;background:linear-gradient(90deg,rgba(4,5,4,.88),rgba(8,9,7,.65)),radial-gradient(ellipse at 72% 40%,#726a37 0%,#262719 38%,#090a08 78%);padding:24px}.panel{width:min(560px,100%);padding:clamp(24px,5vw,52px);border-left:2px solid #c7b85f;background:rgba(7,8,6,.62);box-shadow:0 20px 100px #0008}.eyebrow{font-size:10px;letter-spacing:.34em;color:#c9bb6d;margin-bottom:22px}.title{font-family:Georgia,serif;font-size:clamp(44px,9vw,82px);line-height:.88;letter-spacing:-.055em;color:#e7dfb8;margin:0 0 22px;font-weight:400}.title em{font-style:normal;color:#b9a94f}.desc{max-width:390px;color:#aaa78f;font-size:13px;line-height:1.8;margin-bottom:28px}.start{border:1px solid #c6b85e;background:#c6b85e;color:#14140d;padding:14px 25px;font-weight:bold;font-size:11px;letter-spacing:.2em;cursor:pointer;transition:.2s}.start:hover{background:#e6d77e;transform:translateY(-2px)}.controls{margin-top:25px;padding-top:18px;border-top:1px solid #ffffff1c;display:grid;grid-template-columns:1fr 1fr;gap:10px;color:#9e9b85;font-size:10px;letter-spacing:.08em;line-height:1.6}.controls b{color:#ded7b3;font-weight:600}.warning{font-size:10px;color:#7f7d6c;margin-top:18px;letter-spacing:.08em}#toast{position:fixed;z-index:8;top:20%;left:50%;transform:translateX(-50%);font-size:11px;letter-spacing:.2em;color:#f2e9b8;text-shadow:0 2px 8px #000;opacity:0;transition:opacity .25s;pointer-events:none}#flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:7}#touch{display:none;position:fixed;z-index:6;bottom:18px;left:18px;right:18px;justify-content:space-between;pointer-events:none}#touch button{pointer-events:auto;background:#17180f99;color:#e9e2bd;border:1px solid #d6cb8a66;border-radius:50%;width:54px;height:54px;font-size:10px;touch-action:none}@media(max-width:700px){.top{top:14px;left:14px;right:14px}.bottom{bottom:14px;left:14px;right:14px}.meter{width:110px}.hint{font-size:9px}#touch{display:flex}.controls{grid-template-columns:1fr 1fr}}
-</style>
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script>
+<link rel="canonical" href="game/">
 </head>
 <body>
-<div id="game"></div><div id="vignette"></div><div id="grain"></div>
-<div id="hud"><div class="top"><div class="brand">KITSUNEST STUDIOS&nbsp; / &nbsp;FIELD RECORDING 001</div><div class="objective">POWER CELLS <strong id="count">0 / 3</strong></div></div><div class="crosshair"></div><div id="message"></div><div class="bottom"><div class="meter">STAMINA<div class="bar"><span id="stamina"></span></div><div style="margin-top:7px">FLASHLIGHT <span id="battery">100%</span></div></div><div class="hint">W A S D &nbsp; MOVE<br>SHIFT &nbsp; SPRINT &nbsp; / &nbsp; F &nbsp; LIGHT<br>E &nbsp; INTERACT &nbsp; / &nbsp; ESC &nbsp; PAUSE</div></div></div>
-<div id="toast"></div><div id="flash"></div>
-<div id="touch"><button id="moveTouch">MOVE</button><button id="runTouch">RUN</button><button id="lookTouch">LOOK</button></div>
-<div id="overlay"><div class="panel"><div class="eyebrow">AN UNAUTHORIZED PLACE</div><h1 class="title">THE<br><em>BACKROOMS</em></h1><p class="desc" id="intro">You have slipped out of reality. The lights hum overhead. Somewhere in this place, something has heard you arrive. Find three power cells and reach the exit.</p><button class="start" id="start">ENTER LEVEL 0&nbsp; →</button><div class="controls"><div><b>W A S D</b> &nbsp; Move</div><div><b>MOUSE</b> &nbsp; Look around</div><div><b>SHIFT</b> &nbsp; Sprint</div><div><b>F</b> &nbsp; Flashlight</div><div><b>E</b> &nbsp; Interact</div><div><b>ESC</b> &nbsp; Pause</div></div><div class="warning">HEADPHONES RECOMMENDED · KEEP MOVING · DO NOT TRUST THE HUM</div></div></div>
-
-<script type="module">
-import * as THREE from 'three';
-const $=id=>document.getElementById(id);
-const host=$('game');
-let scene,camera,renderer,clock,player,flashlight,ambient,entity,entityLight;
-let running=false,paused=false,locked=false,stamina=100,battery=100,flashOn=true,found=0,won=false;
-const keys={},walls=[],pickups=[],lights=[],raycaster=new THREE.Raycaster();
-const CELL=8,HALF=4,MAP=[
-'###############',
-'#.....#.......#',
-'#.###.#.#####.#',
-'#...#...#.....#',
-'###.#####.###.#',
-'#...#.....#...#',
-'#.#.#.###.#.###',
-'#.#...#...#...#',
-'#.#####.###.#.#',
-'#.....#.....#.#',
-'#####.#.#####.#',
-'#.....#.......#',
-'#.#########.#.#',
-'#...........#.#',
-'###############'
-];
-const startPos=new THREE.Vector3(-48,1.65,-48);
-function cellCenter(x,z){return new THREE.Vector3((x-7)*CELL,0,(z-7)*CELL)}
-function isWall(x,z){return z<0||z>=MAP.length||x<0||x>=MAP[0].length||MAP[z][x]==='#'}
-function collides(pos,r=.34){const x=Math.floor(pos.x/CELL+7.5),z=Math.floor(pos.z/CELL+7.5);for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++)if(isWall(x+dx,z+dz)){const cx=(x+dx-7)*CELL,cz=(z+dz-7)*CELL;if(Math.abs(pos.x-cx)<HALF+r&&Math.abs(pos.z-cz)<HALF+r)return true}return false}
-function makeMat(color,rough=1){return new THREE.MeshStandardMaterial({color,roughness:rough})}
-function box(w,h,d,mat,x,y,z){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;scene.add(m);return m}
-function buildWorld(){
- scene=new THREE.Scene();scene.background=new THREE.Color(0xaaa36d);scene.fog=new THREE.FogExp2(0xaaa36d,.014);
- camera=new THREE.PerspectiveCamera(74,innerWidth/innerHeight,.08,180);camera.position.copy(startPos);camera.rotation.order='YXZ';
- renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.12;host.appendChild(renderer.domElement);
- clock=new THREE.Clock();
- const wallMat=makeMat(0xc9bd72),floorMat=makeMat(0x77734c),ceilingMat=makeMat(0x9d9660),trimMat=makeMat(0x756d3f),tileMat=new THREE.MeshStandardMaterial({color:0xfff5c2,emissive:0xffe99a,emissiveIntensity:1.4});
- box(120,.5,120,floorMat,0,-.28,0);box(120,.5,120,ceilingMat,0,4.3,0);
- for(let z=0;z<MAP.length;z++)for(let x=0;x<MAP[z].length;x++){
-  const p=cellCenter(x,z);
-  if(MAP[z][x]==='#'){
-   const w=box(CELL,4.5,CELL,wallMat,p.x,1.95,p.z);walls.push(w);
-   // subtle lower wall trim
-   box(CELL,.16,CELL,trimMat,p.x,.12,p.z);
-  }else if((x*3+z*7)%5===0){
-   const tile=box(2.2,.08,1.1,tileMat,p.x,4.01,p.z);
-   const light=new THREE.PointLight(0xffe9a5,12,15,2);light.position.set(p.x,3.75,p.z);scene.add(light);lights.push({light,base:12,phase:Math.random()*8});
-  }
- }
- ambient=new THREE.HemisphereLight(0xffedb1,0x49452a,1.15);scene.add(ambient);
- const fill=new THREE.DirectionalLight(0xffe5a0,.65);fill.position.set(-20,30,10);scene.add(fill);
- flashlight=new THREE.SpotLight(0xfff3ce,55,24,Math.PI/7,.55,1.5);flashlight.position.set(0,0,0);flashlight.target.position.set(0,0,-1);camera.add(flashlight);camera.add(flashlight.target);scene.add(camera);
- // place cells in distant, reachable rooms
- [[13,2],[2,11],[12,11]].forEach((c,i)=>{const p=cellCenter(c[0],c[1]);const g=new THREE.Group();g.position.set(p.x,1.05,p.z);const core=new THREE.Mesh(new THREE.OctahedronGeometry(.34,0),new THREE.MeshStandardMaterial({color:0xffe68b,emissive:0xffb300,emissiveIntensity:2,metalness:.35,roughness:.25}));g.add(core);const ring=new THREE.Mesh(new THREE.TorusGeometry(.5,.035,8,24),new THREE.MeshBasicMaterial({color:0xffe9a3}));g.add(ring);scene.add(g);pickups.push({group:g,kind:'cell',taken:false});const glow=new THREE.PointLight(0xffc94d,3,7);g.add(glow)});
- const exit=cellCenter(1,13);const doorMat=new THREE.MeshStandardMaterial({color:0x163d27,emissive:0x1aff75,emissiveIntensity:.8});box(1.8,2.8,.16,doorMat,exit.x,1.45,exit.z-3.5);const exitLamp=new THREE.PointLight(0x39ff83,5,12);exitLamp.position.set(exit.x,2.7,exit.z-3.2);scene.add(exitLamp);const ep=cellCenter(12,1);entity=new THREE.Group();entity.position.set(ep.x,0,ep.z);
- const dark=new THREE.MeshStandardMaterial({color:0x090a08,roughness:.95});
- const body=new THREE.Mesh(new THREE.CapsuleGeometry(.42,.9,4,8),dark);body.position.y=1.1;entity.add(body);
- const head=new THREE.Mesh(new THREE.SphereGeometry(.32,12,10),dark);head.position.y=2;entity.add(head);
- const eyes=new THREE.Mesh(new THREE.BoxGeometry(.25,.045,.035),new THREE.MeshBasicMaterial({color:0xd7c67b}));eyes.position.set(0,2.02,-.3);entity.add(eyes);
- entityLight=new THREE.PointLight(0x8d7a3e,.6,3);entityLight.position.y=1.8;entity.add(entityLight);scene.add(entity);
-}
-let yaw=0,pitch=0,entitySpeed=1.55,lastStep=0,moveVec=new THREE.Vector3();
-function showToast(s){$('toast').textContent=s;$('toast').style.opacity=1;clearTimeout(showToast.t);showToast.t=setTimeout(()=>$('toast').style.opacity=0,2100)}
-function message(s){$('message').textContent=s;$('message').style.opacity=s?1:0}
-function initAudio(){try{const C=window.AudioContext||window.webkitAudioContext;const ctx=new C();const osc=ctx.createOscillator(),gain=ctx.createGain(),filter=ctx.createBiquadFilter();osc.type='sawtooth';osc.frequency.value=58;filter.type='lowpass';filter.frequency.value=180;gain.gain.value=.018;osc.connect(filter);filter.connect(gain);gain.connect(ctx.destination);osc.start();return {ctx,osc,gain}}catch(e){return null}}
-let audio=null;
-function playTone(freq=440,dur=.12,type='sine',vol=.06){if(!audio)return;const o=audio.ctx.createOscillator(),g=audio.ctx.createGain();o.type=type;o.frequency.value=freq;g.gain.setValueAtTime(vol,audio.ctx.currentTime);g.gain.exponentialRampToValueAtTime(.001,audio.ctx.currentTime+dur);o.connect(g);g.connect(audio.ctx.destination);o.start();o.stop(audio.ctx.currentTime+dur)}
-function startGame(){if(!scene)buildWorld();audio=initAudio();running=true;paused=false;won=false;stamina=100;battery=100;found=0;flashOn=true;camera.position.copy(startPos);yaw=0;pitch=0;entity.position.copy(cellCenter(12,1));entity.position.y=0;pickups.forEach(p=>{p.taken=false;p.group.visible=true});$('count').textContent='0 / 3';$('overlay').style.display='none';$('hud').style.display='block';$('flash').style.opacity=0;renderer.domElement.requestPointerLock?.();clock.getDelta();animate()}
-function pauseGame(){if(!running)return;paused=true;running=false;document.exitPointerLock?.();$('intro').textContent='The corridors are still there. Whatever is following you has not stopped.';$('start').textContent='RETURN TO THE BACKROOMS';$('overlay').style.display='flex';$('hud').style.display='none';}
-function endGame(win){running=false;won=win;document.exitPointerLock?.();$('hud').style.display='none';$('overlay').style.display='flex';$('intro').textContent=win?'The emergency door opens. Cold air. Real air. You made it out — for now.':'The hum grows louder. The yellow corridors swallow the last of your footsteps. You were not alone.';$('start').textContent=win?'PLAY AGAIN':'TRY AGAIN';$('overlay').querySelector('.eyebrow').textContent=win?'EXIT FOUND':'SIGNAL LOST';$('overlay').querySelector('.title').innerHTML=win?'YOU<br><em>ESCAPED</em>':'LOST IN<br><em>LEVEL 0</em>'}
-$('start').addEventListener('click',()=>{if(!scene||!running)startGame()});
-document.addEventListener('pointerlockchange',()=>{locked=document.pointerLockElement===renderer?.domElement;if(running&&!locked&&!('ontouchstart'in window))pauseGame()});
-document.addEventListener('mousemove',e=>{if(!running||!locked)return;yaw-=e.movementX*.0022;pitch-=e.movementY*.0022;pitch=Math.max(-1.35,Math.min(1.35,pitch));camera.rotation.set(pitch,yaw,0)});
-document.addEventListener('keydown',e=>{keys[e.code]=true;if(e.code==='Escape'&&running)pauseGame();if(e.code==='KeyF'&&running){flashOn=!flashOn;flashlight.visible=flashOn;playTone(flashOn?620:260,.08)}if(e.code==='KeyE'&&running)interact()});
-document.addEventListener('keyup',e=>keys[e.code]=false);
-function interact(){let nearest=null,dist=2.7;for(const p of pickups){if(p.taken)continue;const d=camera.position.distanceTo(p.group.position);if(d<dist){dist=d;nearest=p}}if(nearest){nearest.taken=true;nearest.group.visible=false;found++;$('count').textContent=found+' / 3';showToast('POWER CELL ACQUIRED');playTone(740,.18,'triangle',.08);if(found===3)showToast('EXIT POWER RESTORED — FIND THE GREEN LIGHT');return}
- const exitPos=cellCenter(1,13);if(camera.position.distanceTo(new THREE.Vector3(exitPos.x,1.6,exitPos.z))<3){if(found===3){playTone(880,.5,'sine',.1);endGame(true)}else showToast('EXIT LOCKED — '+(3-found)+' POWER CELLS REMAIN')}}
-function updatePlayer(dt){const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw)),right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));moveVec.set(0,0,0);if(keys.KeyW||keys.ArrowUp)moveVec.add(forward);if(keys.KeyS||keys.ArrowDown)moveVec.sub(forward);if(keys.KeyD||keys.ArrowRight)moveVec.add(right);if(keys.KeyA||keys.ArrowLeft)moveVec.sub(right);const moving=moveVec.lengthSq()>0;const sprint=moving&&(keys.ShiftLeft||keys.ShiftRight)&&stamina>1;const speed=sprint?6.1:3.15;if(moving){moveVec.normalize().multiplyScalar(speed*dt);const next=camera.position.clone().add(moveVec);if(!collides(next))camera.position.x=next.x;if(!collides(new THREE.Vector3(camera.position.x,camera.position.y,next.z)))camera.position.z=next.z;if(performance.now()-lastStep>(sprint?270:440)){playTone(70+Math.random()*20,.035,'triangle',.012);lastStep=performance.now()}}
- if(sprint)stamina=Math.max(0,stamina-26*dt);else stamina=Math.min(100,stamina+17*dt);$('stamina').style.width=stamina+'%';battery=Math.max(0,battery-(flashOn?.045:0)*dt);if(battery<=0&&flashOn){flashOn=false;flashlight.visible=false;showToast('FLASHLIGHT BATTERY EMPTY')}if(battery<100&&!flashOn)battery=Math.min(100,battery+.012*dt);$('battery').textContent=Math.round(battery)+'%';}
-function pathTarget(){const sx=Math.max(0,Math.min(14,Math.floor(entity.position.x/CELL+7.5))),sz=Math.max(0,Math.min(14,Math.floor(entity.position.z/CELL+7.5))),tx=Math.max(0,Math.min(14,Math.floor(camera.position.x/CELL+7.5))),tz=Math.max(0,Math.min(14,Math.floor(camera.position.z/CELL+7.5)));const q=[[sx,sz]],seen=new Set([sx+','+sz]),prev=new Map();let end=null;for(let i=0;i<q.length;i++){const [x,z]=q[i];if(x===tx&&z===tz){end=[x,z];break}for(const [nx,nz] of [[x+1,z],[x-1,z],[x,z+1],[x,z-1]]){const k=nx+','+nz;if(nx<0||nx>14||nz<0||nz>14||isWall(nx,nz)||seen.has(k))continue;seen.add(k);prev.set(k,[x,z]);q.push([nx,nz])}}if(!end)return new THREE.Vector3(camera.position.x,0,camera.position.z);let cur=end;while(prev.has(cur[0]+','+cur[1])){const p=prev.get(cur[0]+','+cur[1]);if(p[0]===sx&&p[1]===sz)break;cur=p}return cellCenter(cur[0],cur[1])}\nfunction updateEntity(dt,t){const target=pathTarget();const toPlayer=new THREE.Vector3(target.x-entity.position.x,0,target.z-entity.position.z);const realDistance=Math.hypot(camera.position.x-entity.position.x,camera.position.z-entity.position.z);const d=realDistance;const speed=entitySpeed+(found*.22)+(d<12?.55:0);if(toPlayer.length()>.45){toPlayer.normalize();const next=entity.position.clone().addScaledVector(toPlayer,speed*dt);if(!collides(next,.48))entity.position.copy(next);entity.rotation.y=Math.atan2(toPlayer.x,toPlayer.z)}if(d<1.45){$('flash').style.opacity=.65;setTimeout(()=>$('flash').style.opacity=0,100);endGame(false)}if(d<18&&Math.random()<.006){playTone(95+Math.random()*35,.3,'sawtooth',.018)}entity.children[0].position.y=1.1+Math.sin(t*5)*.07;entityLight.intensity=.45+Math.sin(t*7)*.15}
-function updateWorld(t){for(const l of lights){const flicker=Math.sin(t*2.1+l.phase)*.08+(Math.random()<.001?-.8:0);l.light.intensity=Math.max(1,l.base+flicker*10)}pickups.forEach(p=>{if(!p.taken){p.group.rotation.y+=.012;p.group.position.y=1.05+Math.sin(t*2.2)*.12}});flashlight.intensity=flashOn?55:0}
-function animate(){if(!running)return;requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04),t=clock.elapsedTime;updatePlayer(dt);updateEntity(dt,t);updateWorld(t);renderer.render(scene,camera);if(found===3){const exit=cellCenter(1,13);if(camera.position.distanceTo(new THREE.Vector3(exit.x,1.6,exit.z))<3)message('PRESS E TO OPEN THE EXIT');else message('THE EXIT IS SOMEWHERE IN THE SOUTHERN CORRIDORS')}else message('FIND THE POWER CELLS');}
-window.addEventListener('resize',()=>{if(!camera||!renderer)return;camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
-let touchStart=null;
-$('moveTouch').addEventListener('pointerdown',e=>{touchStart={x:e.clientX,y:e.clientY};$('moveTouch').setPointerCapture(e.pointerId)});$('moveTouch').addEventListener('pointermove',e=>{if(!touchStart)return;const dx=e.clientX-touchStart.x,dy=e.clientY-touchStart.y;keys.KeyW=dy<-8;keys.KeyS=dy>8;keys.KeyA=dx<-8;keys.KeyD=dx>8});$('moveTouch').addEventListener('pointerup',()=>{touchStart=null;keys.KeyW=keys.KeyS=keys.KeyA=keys.KeyD=false});
-$('runTouch').addEventListener('pointerdown',()=>keys.ShiftLeft=true);$('runTouch').addEventListener('pointerup',()=>keys.ShiftLeft=false);
-let lookX=null;$('lookTouch').addEventListener('pointerdown',e=>{lookX=e.clientX;$('lookTouch').setPointerCapture(e.pointerId)});$('lookTouch').addEventListener('pointermove',e=>{if(lookX===null||!running)return;yaw-=(e.clientX-lookX)*.006;lookX=e.clientX;camera.rotation.set(pitch,yaw,0)});$('lookTouch').addEventListener('pointerup',()=>lookX=null);
-</script>
-</body></html>
+<p>Loading the 3D Backrooms game… <a href="game/">Click here if you are not redirected.</a></p>
+<script>window.location.replace(new URL("game/", window.location.href).href);</script>
+</body>
+</html>
