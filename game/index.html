@@ -24,7 +24,7 @@ let scene,camera,renderer,clock,player,flashlight,ambient,entity,entityLight;
 let running=false,paused=false,locked=false,stamina=100,battery=100,flashOn=true,found=0,won=false;
 const keys={},walls=[],pickups=[],lights=[],raycaster=new THREE.Raycaster();
 const CELL=8,HALF=4,CHUNK=15;
-const breachObstacles=[];
+const breachObstacles=[],breachByChunk=new Map();
 let lastFrameAt=0;
 let worldSeed=0;
 const loadedChunks=new Map(),chunkMaps=new Map();let activeChunkX=NaN,activeChunkZ=NaN;
@@ -73,13 +73,15 @@ function ensureChunk(cx,cz){
  const key=cx+","+cz;if(loadedChunks.has(key))return;
  const map=makeChunkMap(cx,cz),group=new THREE.Group(),wallGeo=new THREE.BoxGeometry(CELL,4.5,CELL),wallMat=makeWallpaperMaterial();
  // A few chunks contain a torn-through wall opening that connects two corridors.
- const breachRnd=randomFor(cx+313,cz-719),candidates=[];
- for(let z=1;z<14;z++)for(let x=1;x<14;x++)if(map[z][x]){
-  if(!map[z][x-1]&&!map[z][x+1])candidates.push({x,z,axis:'x'});
-  else if(!map[z-1][x]&&!map[z+1][x])candidates.push({x,z,axis:'z'});
+ let breach=breachByChunk.get(key)||null;
+ if(!breach){
+  const breachRnd=randomFor(cx+313,cz-719),candidates=[];
+  for(let z=1;z<14;z++)for(let x=1;x<14;x++)if(map[z][x]){
+   if(!map[z][x-1]&&!map[z][x+1])candidates.push({x,z,axis:'x'});
+   else if(!map[z-1][x]&&!map[z+1][x])candidates.push({x,z,axis:'z'});
+  }
+  if(candidates.length&&breachRnd()<.72){breach=candidates[Math.floor(breachRnd()*candidates.length)];map[breach.z][breach.x]=false;breachByChunk.set(key,breach);}
  }
- let breach=null;
- if(candidates.length&&breachRnd()<.72){breach=candidates[Math.floor(breachRnd()*candidates.length)];map[breach.z][breach.x]=false;}
  // Split walls into 3x3 spatial batches. Three.js can frustum-cull each batch,
  // instead of drawing every wall in a whole chunk whenever any part is visible.
  const dummy=new THREE.Object3D(),BATCH=5;
@@ -210,7 +212,7 @@ function makeMat(color,rough=1){return new THREE.MeshStandardMaterial({color,rou
 function box(w,h,d,mat,x,y,z){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;scene.add(m);return m}
 function buildWorld(){
  if(scene)scene.clear();
- loadedChunks.clear();chunkMaps.clear();walls.length=0;pickups.length=0;lights.length=0;breachObstacles.length=0;activeChunkX=NaN;activeChunkZ=NaN;
+ loadedChunks.clear();chunkMaps.clear();walls.length=0;pickups.length=0;lights.length=0;breachObstacles.length=0;breachByChunk.clear();activeChunkX=NaN;activeChunkZ=NaN;
  scene=new THREE.Scene();scene.background=new THREE.Color(0xaaa36d);scene.fog=new THREE.FogExp2(0xaaa36d,.009);
  camera=new THREE.PerspectiveCamera(74,innerWidth/innerHeight,.08,180);camera.position.copy(startPos);camera.rotation.order='YXZ';
  if(!renderer){
