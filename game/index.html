@@ -69,13 +69,20 @@ function updateChunks(){
 function ensureChunk(cx,cz){
  const key=cx+","+cz;if(loadedChunks.has(key))return;
  const map=makeChunkMap(cx,cz),group=new THREE.Group(),wallGeo=new THREE.BoxGeometry(CELL,4.5,CELL),wallMat=makeMat(0xc9bd72);
- let count=0;for(let z=0;z<CHUNK;z++)for(let x=0;x<CHUNK;x++)if(map[z][x])count++;
- const mesh=new THREE.InstancedMesh(wallGeo,wallMat,count);mesh.castShadow=false;mesh.receiveShadow=true;
- const dummy=new THREE.Object3D();let i=0;
- for(let z=0;z<CHUNK;z++)for(let x=0;x<CHUNK;x++)if(map[z][x]){
-  dummy.position.set((cx*CHUNK+x-7)*CELL,1.95,(cz*CHUNK+z-7)*CELL);dummy.updateMatrix();mesh.setMatrixAt(i++,dummy.matrix);
+ // Split walls into 3x3 spatial batches. Three.js can frustum-cull each batch,
+ // instead of drawing every wall in a whole chunk whenever any part is visible.
+ const dummy=new THREE.Object3D(),BATCH=5;
+ for(let bz=0;bz<3;bz++)for(let bx=0;bx<3;bx++){
+  const cells=[];
+  for(let z=bz*BATCH;z<(bz+1)*BATCH;z++)for(let x=bx*BATCH;x<(bx+1)*BATCH;x++)if(map[z][x])cells.push([x,z]);
+  if(!cells.length)continue;
+  const mesh=new THREE.InstancedMesh(wallGeo,wallMat,cells.length);mesh.castShadow=false;mesh.receiveShadow=false;
+  for(let i=0;i<cells.length;i++){
+   const [x,z]=cells[i];
+   dummy.position.set((cx*CHUNK+x-7)*CELL,1.95,(cz*CHUNK+z-7)*CELL);dummy.updateMatrix();mesh.setMatrixAt(i,dummy.matrix);
+  }
+  mesh.instanceMatrix.needsUpdate=true;mesh.computeBoundingSphere();group.add(mesh);
  }
- mesh.instanceMatrix.needsUpdate=true;group.add(mesh);
  const floor=new THREE.Mesh(new THREE.PlaneGeometry(CHUNK*CELL,CHUNK*CELL),makeMat(0x77734c));floor.rotation.x=-Math.PI/2;floor.position.set(cx*CHUNK*CELL, -.28,cz*CHUNK*CELL);group.add(floor);
  const ceiling=new THREE.Mesh(new THREE.PlaneGeometry(CHUNK*CELL,CHUNK*CELL),makeMat(0x9d9660));ceiling.rotation.x=Math.PI/2;ceiling.position.set(cx*CHUNK*CELL,4.3,cz*CHUNK*CELL);group.add(ceiling);
  const rnd=randomFor(cx+7919,cz-104729);
