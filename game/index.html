@@ -85,7 +85,7 @@ function ensureChunk(cx,cz){
   mesh.instanceMatrix.needsUpdate=true;mesh.computeBoundingSphere();group.add(mesh);
  }
  const floor=new THREE.Mesh(new THREE.PlaneGeometry(CHUNK*CELL,CHUNK*CELL),makeMat(0x77734c));floor.rotation.x=-Math.PI/2;floor.position.set(cx*CHUNK*CELL, -.28,cz*CHUNK*CELL);group.add(floor);
- const ceiling=new THREE.Mesh(new THREE.PlaneGeometry(CHUNK*CELL,CHUNK*CELL),makeMat(0x9d9660));ceiling.rotation.x=Math.PI/2;ceiling.position.set(cx*CHUNK*CELL,4.3,cz*CHUNK*CELL);group.add(ceiling);
+ const ceiling=new THREE.Mesh(new THREE.PlaneGeometry(CHUNK*CELL,CHUNK*CELL),makeCeilingMaterial());ceiling.rotation.x=Math.PI/2;ceiling.position.set(cx*CHUNK*CELL,4.3,cz*CHUNK*CELL);group.add(ceiling);
  const rnd=randomFor(cx+7919,cz-104729);
  for(let n=0;n<2;n++){
   const x=1+Math.floor(rnd()*7)*2,z=1+Math.floor(rnd()*7)*2;if(map[z][x])continue;
@@ -115,6 +115,37 @@ function makeWallpaperMaterial(){
  for(let y=34;y<256;y+=71){ctx.fillStyle='rgba(93,79,42,.035)';ctx.fillRect(0,y,256,1)}
  const tex=new THREE.CanvasTexture(canvas);tex.wrapS=THREE.RepeatWrapping;tex.wrapT=THREE.RepeatWrapping;tex.colorSpace=THREE.SRGBColorSpace;
  wallpaperMaterial=new THREE.MeshStandardMaterial({map:tex,color:0xffffff,roughness:1});return wallpaperMaterial;
+}
+let ceilingMaterial=null;
+function makeCeilingMaterial(){
+ if(ceilingMaterial)return ceilingMaterial;
+ const canvas=document.createElement('canvas');canvas.width=256;canvas.height=256;
+ const ctx=canvas.getContext('2d'),img=ctx.createImageData(256,256);
+ let seed=48193;
+ for(let y=0;y<256;y++)for(let x=0;x<256;x++){
+  seed=(seed*1664525+1013904223)>>>0;
+  const noise=((seed>>>24)&255)-128;
+  const broad=(Math.sin(x*.025+1.2)*Math.sin(y*.031)*5);
+  const i=(y*256+x)*4,shade=noise*.075+broad;
+  img.data[i]=Math.max(0,184+shade);
+  img.data[i+1]=Math.max(0,177+shade);
+  img.data[i+2]=Math.max(0,139+shade*.8);
+  img.data[i+3]=255;
+ }
+ ctx.putImageData(img,0,0);
+ // Four old acoustic ceiling panels, with dark seams and softened edges.
+ for(let p=0;p<=256;p+=64){
+  ctx.fillStyle='rgba(75,68,43,.20)';ctx.fillRect(p,0,2,256);ctx.fillRect(0,p,256,2);
+  ctx.fillStyle='rgba(255,244,204,.16)';ctx.fillRect(p+2,0,1,256);ctx.fillRect(0,p+2,256,1);
+ }
+ // Faint aged patches, kept subtle so they read as stains rather than spots.
+ for(const [x,y,r] of [[42,38,34],[188,79,27],[112,207,39],[225,224,24]]){
+  const g=ctx.createRadialGradient(x,y,2,x,y,r);
+  g.addColorStop(0,'rgba(91,77,43,.15)');g.addColorStop(1,'rgba(91,77,43,0)');
+  ctx.fillStyle=g;ctx.fillRect(x-r,y-r,r*2,r*2);
+ }
+ const tex=new THREE.CanvasTexture(canvas);tex.wrapS=THREE.RepeatWrapping;tex.wrapT=THREE.RepeatWrapping;tex.colorSpace=THREE.SRGBColorSpace;
+ ceilingMaterial=new THREE.MeshStandardMaterial({map:tex,color:0xffffff,roughness:1});return ceilingMaterial;
 }
 function makeMat(color,rough=1){return new THREE.MeshStandardMaterial({color,roughness:rough})}
 function box(w,h,d,mat,x,y,z){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;scene.add(m);return m}
