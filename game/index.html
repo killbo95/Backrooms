@@ -62,7 +62,7 @@ function collides(pos,r=.34){
 function updateChunks(){
  const px=chunkOf(Math.round(camera.position.x/CELL)),pz=chunkOf(Math.round(camera.position.z/CELL));
  for(let dz=-2;dz<=2;dz++)for(let dx=-2;dx<=2;dx++)ensureChunk(px+dx,pz+dz);
- for(const [key,obj] of loadedChunks){const [x,z]=key.split(",").map(Number);if(Math.abs(x-px)>3||Math.abs(z-pz)>3){scene.remove(obj.group);obj.group.traverse(o=>{if(o.geometry)o.geometry.dispose()});loadedChunks.delete(key)}}
+ for(const [key,obj] of loadedChunks){const [x,z]=key.split(",").map(Number);if(Math.abs(x-px)>3||Math.abs(z-pz)>3){scene.remove(obj.group);obj.group.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose()}});for(let i=lights.length-1;i>=0;i--)if(lights[i].chunkKey===key)lights.splice(i,1);loadedChunks.delete(key)}}
 }
 function ensureChunk(cx,cz){
  const key=cx+","+cz;if(loadedChunks.has(key))return;
@@ -81,7 +81,7 @@ function ensureChunk(cx,cz){
   const x=1+Math.floor(rnd()*7)*2,z=1+Math.floor(rnd()*7)*2;if(map[z][x])continue;
   const gx=cx*CHUNK+x-7,gz=cz*CHUNK+z-7,p=cellCenter(gx,gz);
   const tile=new THREE.Mesh(new THREE.BoxGeometry(2.2,.06,1.1),new THREE.MeshStandardMaterial({color:0xfff5c2,emissive:0xffe99a,emissiveIntensity:1.15}));tile.position.set(p.x,4.01,p.z);group.add(tile);
-  const light=new THREE.PointLight(0xffe9a5,10,15,2);light.position.set(p.x,3.75,p.z);group.add(light);lights.push({light,base:10,phase:rnd()*8});
+  const light=new THREE.PointLight(0xffe9a5,10,15,2);light.position.set(p.x,3.75,p.z);group.add(light);lights.push({light,base:10,phase:rnd()*8,chunkKey:key});
  }
  scene.add(group);loadedChunks.set(key,{group});
 }
