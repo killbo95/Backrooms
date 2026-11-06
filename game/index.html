@@ -24,6 +24,7 @@ let scene,camera,renderer,clock,player,flashlight,ambient,entity,entityLight;
 let running=false,paused=false,locked=false,stamina=100,battery=100,flashOn=true,found=0,won=false;
 const keys={},walls=[],pickups=[],lights=[],raycaster=new THREE.Raycaster();
 const CELL=8,HALF=4,CHUNK=15;
+const breachObstacles=[];
 let lastFrameAt=0;
 let worldSeed=0;
 const loadedChunks=new Map(),chunkMaps=new Map();let activeChunkX=NaN,activeChunkZ=NaN;
@@ -58,6 +59,7 @@ function collides(pos,r=.34){
  for(let z=minZ;z<=maxZ;z++)for(let x=minX;x<=maxX;x++)if(isWallCell(x,z)){
   if(Math.abs(pos.x-x*CELL)<HALF+r&&Math.abs(pos.z-z*CELL)<HALF+r)return true;
  }
+ for(const b of breachObstacles)if(Math.abs(pos.x-b.x)<b.hx+r&&Math.abs(pos.z-b.z)<b.hz+r)return true;
  return false;
 }
 function updateChunks(){
@@ -65,11 +67,19 @@ function updateChunks(){
  if(px===activeChunkX&&pz===activeChunkZ)return;
  activeChunkX=px;activeChunkZ=pz;
  for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++)ensureChunk(px+dx,pz+dz);
- for(const [key,obj] of loadedChunks){const [x,z]=key.split(",").map(Number);if(Math.abs(x-px)>2||Math.abs(z-pz)>2){scene.remove(obj.group);obj.group.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose()}});for(let i=lights.length-1;i>=0;i--)if(lights[i].chunkKey===key)lights.splice(i,1);loadedChunks.delete(key)}}
+ for(const [key,obj] of loadedChunks){const [x,z]=key.split(",").map(Number);if(Math.abs(x-px)>2||Math.abs(z-pz)>2){scene.remove(obj.group);obj.group.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose()}});for(let i=lights.length-1;i>=0;i--)if(lights[i].chunkKey===key)lights.splice(i,1);for(let i=pickups.length-1;i>=0;i--)if(pickups[i].chunkKey===key)pickups.splice(i,1);for(let i=breachObstacles.length-1;i>=0;i--)if(breachObstacles[i].chunkKey===key)breachObstacles.splice(i,1);loadedChunks.delete(key)}}
 }
 function ensureChunk(cx,cz){
  const key=cx+","+cz;if(loadedChunks.has(key))return;
  const map=makeChunkMap(cx,cz),group=new THREE.Group(),wallGeo=new THREE.BoxGeometry(CELL,4.5,CELL),wallMat=makeWallpaperMaterial();
+ // A few chunks contain a torn-through wall opening that connects two corridors.
+ const breachRnd=randomFor(cx+313,cz-719),candidates=[];
+ for(let z=1;z<14;z++)for(let x=1;x<14;x++)if(map[z][x]){
+  if(!map[z][x-1]&&!map[z][x+1])candidates.push({x,z,axis:'x'});
+  else if(!map[z-1][x]&&!map[z+1][x])candidates.push({x,z,axis:'z'});
+ }
+ let breach=null;
+ if(candidates.length&&breachRnd()<.72){breach=candidates[Math.floor(breachRnd()*candidates.length)];map[breach.z][breach.x]=false;}
  // Split walls into 3x3 spatial batches. Three.js can frustum-cull each batch,
  // instead of drawing every wall in a whole chunk whenever any part is visible.
  const dummy=new THREE.Object3D(),BATCH=5;
@@ -84,9 +94,35 @@ function ensureChunk(cx,cz){
   }
   mesh.instanceMatrix.needsUpdate=true;mesh.computeBoundingSphere();group.add(mesh);
  }
+ if(breach){
+  const wx=(cx*CHUNK+breach.x-7)*CELL,wz=(cz*CHUNK+breach.z-7)*CELL;
+  const addFrame=(w,h,d,x,y,z)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),wallMat);m.position.set(x,y,z);group.add(m)};
+  if(breach.axis==='x'){
+   for(const s of [-1,1]){addFrame(1.7,4.5,8,wx+s*3.15,1.95,wz);breachObstacles.push({x:wx+s*3.15,z:wz,hx:.85,hz:4,chunkKey:key});}
+   addFrame(4.6,2.15,8,wx,3.225,wz);
+  }else{
+   for(const s of [-1,1]){addFrame(8,4.5,1.7,wx,1.95,wz+s*3.15);breachObstacles.push({x:wx,z:wz+s*3.15,hx:4,hz:.85,chunkKey:key});}
+   addFrame(8,2.15,4.6,wx,3.225,wz);
+  }
+ }
  const floor=new THREE.Mesh(new THREE.PlaneGeometry(CHUNK*CELL,CHUNK*CELL),makeCarpetMaterial());floor.rotation.x=-Math.PI/2;floor.position.set(cx*CHUNK*CELL, -.28,cz*CHUNK*CELL);group.add(floor);
  const ceiling=new THREE.Mesh(new THREE.PlaneGeometry(CHUNK*CELL,CHUNK*CELL),makeCeilingMaterial());ceiling.rotation.x=Math.PI/2;ceiling.position.set(cx*CHUNK*CELL,4.3,cz*CHUNK*CELL);group.add(ceiling);
  const rnd=randomFor(cx+7919,cz-104729);
+ // Scavengeable supplies: almond water restores flashlight charge; cookies restore stamina.
+ if(rnd()<.78){
+  let sx=7,sz=7;for(let tries=0;tries<80;tries++){const tx=1+Math.floor(rnd()*13),tz=1+Math.floor(rnd()*13);if(!map[tz][tx]){sx=tx;sz=tz;break}}
+  const kind=rnd()<.52?'almond':'cookie',supply=new THREE.Group();
+  if(kind==='almond'){
+   const bottle=new THREE.Mesh(new THREE.CylinderGeometry(.19,.22,.72,10),new THREE.MeshStandardMaterial({color:0x83c9d8,roughness:.28,metalness:.05,transparent:true,opacity:.88}));bottle.position.y=.42;supply.add(bottle);
+   const cap=new THREE.Mesh(new THREE.CylinderGeometry(.105,.105,.12,8),new THREE.MeshStandardMaterial({color:0xe8dfc4,roughness:.8}));cap.position.y=.84;supply.add(cap);
+   const label=new THREE.Mesh(new THREE.CylinderGeometry(.195,.205,.22,10),new THREE.MeshStandardMaterial({color:0xe9dfb8,roughness:.9}));label.position.y=.43;supply.add(label);
+  }else{
+   const cookie=new THREE.Mesh(new THREE.CylinderGeometry(.29,.3,.12,18),new THREE.MeshStandardMaterial({color:0xb8793e,roughness:1}));cookie.position.y=.18;supply.add(cookie);
+   const chipMat=new THREE.MeshStandardMaterial({color:0x49301e,roughness:1});
+   for(const [px,pz] of [[-.13,-.08],[.09,-.14],[.17,.08],[-.08,.13],[.02,.02]]){const chip=new THREE.Mesh(new THREE.SphereGeometry(.035,6,5),chipMat);chip.position.set(px,.25,pz);supply.add(chip)}
+  }
+  const sp=cellCenter(cx*CHUNK+sx-7,cz*CHUNK+sz-7);supply.position.set(sp.x,0,sp.z);group.add(supply);pickups.push({group:supply,kind,taken:false,baseY:kind==='almond'?.02:.02,chunkKey:key});
+ }
  for(let n=0;n<6;n++){
   const x=1+Math.floor(rnd()*7)*2,z=1+Math.floor(rnd()*7)*2;if(map[z][x])continue;
   const gx=cx*CHUNK+x-7,gz=cz*CHUNK+z-7,p=cellCenter(gx,gz);
@@ -174,7 +210,7 @@ function makeMat(color,rough=1){return new THREE.MeshStandardMaterial({color,rou
 function box(w,h,d,mat,x,y,z){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;scene.add(m);return m}
 function buildWorld(){
  if(scene)scene.clear();
- loadedChunks.clear();chunkMaps.clear();walls.length=0;pickups.length=0;lights.length=0;activeChunkX=NaN;activeChunkZ=NaN;
+ loadedChunks.clear();chunkMaps.clear();walls.length=0;pickups.length=0;lights.length=0;breachObstacles.length=0;activeChunkX=NaN;activeChunkZ=NaN;
  scene=new THREE.Scene();scene.background=new THREE.Color(0xaaa36d);scene.fog=new THREE.FogExp2(0xaaa36d,.009);
  camera=new THREE.PerspectiveCamera(74,innerWidth/innerHeight,.08,180);camera.position.copy(startPos);camera.rotation.order='YXZ';
  if(!renderer){
@@ -228,7 +264,11 @@ document.addEventListener('pointerlockchange',()=>{locked=document.pointerLockEl
 document.addEventListener('mousemove',e=>{if(!running||('ontouchstart'in window))return;if(!locked&&e.target!==renderer?.domElement)return;yaw-=e.movementX*.0022;pitch-=e.movementY*.0022;pitch=Math.max(-1.35,Math.min(1.35,pitch));camera.rotation.set(pitch,yaw,0)});
 document.addEventListener('keydown',e=>{keys[e.code]=true;if(e.code==='Escape'&&running)pauseGame();if(e.code==='KeyF'&&running){flashOn=!flashOn;flashlight.visible=flashOn;playTone(flashOn?620:260,.08)}if(e.code==='KeyE'&&running)interact()});
 document.addEventListener('keyup',e=>keys[e.code]=false);
-function interact(){let nearest=null,dist=2.7;for(const p of pickups){if(p.taken)continue;const d=camera.position.distanceTo(p.group.position);if(d<dist){dist=d;nearest=p}}if(nearest){nearest.taken=true;nearest.group.visible=false;found++;$('count').textContent=found+' / 3';showToast('POWER CELL ACQUIRED');playTone(740,.18,'triangle',.08);if(found===3)showToast('EXIT POWER RESTORED — FIND THE GREEN LIGHT');return}
+function interact(){let nearest=null,dist=2.7;for(const p of pickups){if(p.taken)continue;const d=camera.position.distanceTo(p.group.position);if(d<dist){dist=d;nearest=p}}if(nearest){nearest.taken=true;nearest.group.visible=false;
+ if(nearest.kind==='cell'){found++;$('count').textContent=found+' / 3';showToast('POWER CELL ACQUIRED');playTone(740,.18,'triangle',.08);if(found===3)showToast('EXIT POWER RESTORED — FIND THE GREEN LIGHT');}
+ else if(nearest.kind==='almond'){battery=Math.min(100,battery+48);stamina=Math.min(100,stamina+18);$('battery').textContent=Math.round(battery)+'%';$('stamina').style.width=stamina+'%';showToast('ALMOND WATER — FLASHLIGHT RECHARGED');playTone(560,.16,'sine',.06);}
+ else if(nearest.kind==='cookie'){stamina=Math.min(100,stamina+48);$('stamina').style.width=stamina+'%';showToast('COOKIE — ENERGY RESTORED');playTone(490,.12,'triangle',.05);}
+ return}
  const exitPos=cellCenter(window.exitCell[0],window.exitCell[1]);if(camera.position.distanceTo(new THREE.Vector3(exitPos.x,1.6,exitPos.z))<3){if(found===3){playTone(880,.5,'sine',.1);endGame(true)}else showToast('EXIT LOCKED — '+(3-found)+' POWER CELLS REMAIN')}}
 function updatePlayer(dt){const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw)),right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));moveVec.set(0,0,0);if(keys.KeyW||keys.ArrowUp)moveVec.add(forward);if(keys.KeyS||keys.ArrowDown)moveVec.sub(forward);if(keys.KeyD||keys.ArrowRight)moveVec.add(right);if(keys.KeyA||keys.ArrowLeft)moveVec.sub(right);const moving=moveVec.lengthSq()>0;const sprint=moving&&(keys.ShiftLeft||keys.ShiftRight)&&stamina>1;const speed=sprint?6.1:3.15;if(moving){moveVec.normalize().multiplyScalar(speed*dt);const next=camera.position.clone().add(moveVec);if(!collides(next))camera.position.x=next.x;if(!collides(new THREE.Vector3(camera.position.x,camera.position.y,next.z)))camera.position.z=next.z;if(performance.now()-lastStep>(sprint?270:440)){playTone(70+Math.random()*20,.035,'triangle',.012);lastStep=performance.now()}}
  if(sprint)stamina=Math.max(0,stamina-26*dt);else stamina=Math.min(100,stamina+17*dt);$('stamina').style.width=stamina+'%';battery=Math.max(0,battery-(flashOn?.045:0)*dt);if(battery<=0&&flashOn){flashOn=false;flashlight.visible=false;showToast('FLASHLIGHT BATTERY EMPTY')}if(battery<100&&!flashOn)battery=Math.min(100,battery+.012*dt);$('battery').textContent=Math.round(battery)+'%';}
@@ -245,7 +285,7 @@ function pathTarget(){
  cachedTarget=cellCenter(cur[0],cur[1]);return cachedTarget;
 }
 function updateEntity(dt,t){const target=pathTarget();const toPlayer=new THREE.Vector3(target.x-entity.position.x,0,target.z-entity.position.z);const realDistance=Math.hypot(camera.position.x-entity.position.x,camera.position.z-entity.position.z);const d=realDistance;const speed=entitySpeed+(found*.22)+(d<12?.55:0);if(toPlayer.length()>.45){toPlayer.normalize();const next=entity.position.clone().addScaledVector(toPlayer,speed*dt);if(!collides(next,.48))entity.position.copy(next);entity.rotation.y=Math.atan2(toPlayer.x,toPlayer.z)}if(d<1.45){$('flash').style.opacity=.65;setTimeout(()=>$('flash').style.opacity=0,100);endGame(false)}if(d<18&&Math.random()<.006){playTone(95+Math.random()*35,.3,'sawtooth',.018)}entity.children[0].position.y=1.1+Math.sin(t*5)*.07;entityLight.intensity=.45+Math.sin(t*7)*.15}
-function updateWorld(t){pickups.forEach(p=>{if(!p.taken){p.group.rotation.y+=.012;p.group.position.y=1.05+Math.sin(t*2.2)*.12}});flashlight.intensity=flashOn?55:0}
+function updateWorld(t){pickups.forEach(p=>{if(!p.taken){if(p.kind==='cell'){p.group.rotation.y+=.012;p.group.position.y=1.05+Math.sin(t*2.2)*.12}else if(p.kind==='almond'){p.group.rotation.y+=.006;p.group.position.y=p.baseY+Math.sin(t*1.8)*.035}}});flashlight.intensity=flashOn?55:0}
 function animate(){if(!running)return;requestAnimationFrame(animate);const now=performance.now();if(now-lastFrameAt<1000/30)return;lastFrameAt=now;const dt=Math.min(clock.getDelta(),.05),t=clock.elapsedTime;updateChunks();updatePlayer(dt);updateEntity(dt,t);updateWorld(t);renderer.render(scene,camera);if(found===3){const exit=cellCenter(window.exitCell[0],window.exitCell[1]);if(camera.position.distanceTo(new THREE.Vector3(exit.x,1.6,exit.z))<3)message('PRESS E TO OPEN THE EXIT');else message('THE EXIT IS SOMEWHERE IN THE SOUTHERN CORRIDORS')}else message('FIND THE POWER CELLS');}
 window.addEventListener('resize',()=>{if(!camera||!renderer)return;camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 let touchStart=null;
