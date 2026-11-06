@@ -25,7 +25,7 @@ let running=false,paused=false,locked=false,stamina=100,battery=100,flashOn=true
 const keys={},walls=[],pickups=[],lights=[],raycaster=new THREE.Raycaster();
 const CELL=8,HALF=4,CHUNK=15;
 let worldSeed=0;
-const loadedChunks=new Map(),chunkMaps=new Map();
+const loadedChunks=new Map(),chunkMaps=new Map();let activeChunkX=NaN,activeChunkZ=NaN;
 const startPos=new THREE.Vector3(0,1.65,0);
 const mod=(n,m)=>((n%m)+m)%m;
 function chunkOf(g){return Math.floor((g+7)/CHUNK)}
@@ -61,8 +61,10 @@ function collides(pos,r=.34){
 }
 function updateChunks(){
  const px=chunkOf(Math.round(camera.position.x/CELL)),pz=chunkOf(Math.round(camera.position.z/CELL));
- for(let dz=-2;dz<=2;dz++)for(let dx=-2;dx<=2;dx++)ensureChunk(px+dx,pz+dz);
- for(const [key,obj] of loadedChunks){const [x,z]=key.split(",").map(Number);if(Math.abs(x-px)>3||Math.abs(z-pz)>3){scene.remove(obj.group);obj.group.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose()}});for(let i=lights.length-1;i>=0;i--)if(lights[i].chunkKey===key)lights.splice(i,1);loadedChunks.delete(key)}}
+ if(px===activeChunkX&&pz===activeChunkZ)return;
+ activeChunkX=px;activeChunkZ=pz;
+ for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++)ensureChunk(px+dx,pz+dz);
+ for(const [key,obj] of loadedChunks){const [x,z]=key.split(",").map(Number);if(Math.abs(x-px)>2||Math.abs(z-pz)>2){scene.remove(obj.group);obj.group.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose()}});for(let i=lights.length-1;i>=0;i--)if(lights[i].chunkKey===key)lights.splice(i,1);loadedChunks.delete(key)}}
 }
 function ensureChunk(cx,cz){
  const key=cx+","+cz;if(loadedChunks.has(key))return;
@@ -77,11 +79,11 @@ function ensureChunk(cx,cz){
  const floor=new THREE.Mesh(new THREE.PlaneGeometry(CHUNK*CELL,CHUNK*CELL),makeMat(0x77734c));floor.rotation.x=-Math.PI/2;floor.position.set(cx*CHUNK*CELL, -.28,cz*CHUNK*CELL);group.add(floor);
  const ceiling=new THREE.Mesh(new THREE.PlaneGeometry(CHUNK*CELL,CHUNK*CELL),makeMat(0x9d9660));ceiling.rotation.x=Math.PI/2;ceiling.position.set(cx*CHUNK*CELL,4.3,cz*CHUNK*CELL);group.add(ceiling);
  const rnd=randomFor(cx+7919,cz-104729);
- for(let n=0;n<5;n++){
+ for(let n=0;n<2;n++){
   const x=1+Math.floor(rnd()*7)*2,z=1+Math.floor(rnd()*7)*2;if(map[z][x])continue;
   const gx=cx*CHUNK+x-7,gz=cz*CHUNK+z-7,p=cellCenter(gx,gz);
-  const tile=new THREE.Mesh(new THREE.BoxGeometry(2.2,.06,1.1),new THREE.MeshStandardMaterial({color:0xfff5c2,emissive:0xffe99a,emissiveIntensity:1.15}));tile.position.set(p.x,4.01,p.z);group.add(tile);
-  const light=new THREE.PointLight(0xffe9a5,10,15,2);light.position.set(p.x,3.75,p.z);group.add(light);lights.push({light,base:10,phase:rnd()*8,chunkKey:key});
+  const tile=new THREE.Mesh(new THREE.BoxGeometry(2.2,.06,1.1),new THREE.MeshStandardMaterial({color:0xfff5c2,emissive:0xffe99a,emissiveIntensity:1.6}));tile.position.set(p.x,4.01,p.z);group.add(tile);
+  const light=new THREE.PointLight(0xffe9a5,7,13,2);light.position.set(p.x,3.75,p.z);group.add(light);lights.push({light,base:10,phase:rnd()*8,chunkKey:key});
  }
  scene.add(group);loadedChunks.set(key,{group});
 }
@@ -93,17 +95,17 @@ function makeMat(color,rough=1){return new THREE.MeshStandardMaterial({color,rou
 function box(w,h,d,mat,x,y,z){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;scene.add(m);return m}
 function buildWorld(){
  if(scene)scene.clear();
- loadedChunks.clear();chunkMaps.clear();walls.length=0;pickups.length=0;lights.length=0;
+ loadedChunks.clear();chunkMaps.clear();walls.length=0;pickups.length=0;lights.length=0;activeChunkX=NaN;activeChunkZ=NaN;
  scene=new THREE.Scene();scene.background=new THREE.Color(0xaaa36d);scene.fog=new THREE.FogExp2(0xaaa36d,.009);
- camera=new THREE.PerspectiveCamera(74,innerWidth/innerHeight,.08,260);camera.position.copy(startPos);camera.rotation.order='YXZ';
+ camera=new THREE.PerspectiveCamera(74,innerWidth/innerHeight,.08,180);camera.position.copy(startPos);camera.rotation.order='YXZ';
  if(!renderer){
-  renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
-  renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));renderer.setSize(innerWidth,innerHeight);
+  renderer=new THREE.WebGLRenderer({antialias:false,powerPreference:'high-performance'});
+  renderer.setPixelRatio(Math.min(devicePixelRatio,1.15));renderer.setSize(innerWidth,innerHeight);
   renderer.domElement.addEventListener('click',()=>{if(running&&!locked)renderer.domElement.requestPointerLock?.()});
   renderer.shadowMap.enabled=false;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.12;host.appendChild(renderer.domElement);
  }
  clock=new THREE.Clock();
- ambient=new THREE.HemisphereLight(0xffedb1,0x49452a,1.05);scene.add(ambient);
+ ambient=new THREE.HemisphereLight(0xffedb1,0x49452a,1.25);scene.add(ambient);
  const fill=new THREE.DirectionalLight(0xffe5a0,.3);fill.position.set(-20,30,10);scene.add(fill);
  flashlight=new THREE.SpotLight(0xfff3ce,55,26,Math.PI/7,.55,1.5);flashlight.position.set(0,0,0);flashlight.target.position.set(0,0,-1);camera.add(flashlight);camera.add(flashlight.target);scene.add(camera);
  updateChunks();
@@ -153,10 +155,10 @@ function updatePlayer(dt){const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math
  if(sprint)stamina=Math.max(0,stamina-26*dt);else stamina=Math.min(100,stamina+17*dt);$('stamina').style.width=stamina+'%';battery=Math.max(0,battery-(flashOn?.045:0)*dt);if(battery<=0&&flashOn){flashOn=false;flashlight.visible=false;showToast('FLASHLIGHT BATTERY EMPTY')}if(battery<100&&!flashOn)battery=Math.min(100,battery+.012*dt);$('battery').textContent=Math.round(battery)+'%';}
 let lastPathAt=0,cachedTarget=null;
 function pathTarget(){
- const now=performance.now();if(cachedTarget&&now-lastPathAt<550)return cachedTarget;lastPathAt=now;
+ const now=performance.now();if(cachedTarget&&now-lastPathAt<900)return cachedTarget;lastPathAt=now;
  const sx=Math.round(entity.position.x/CELL),sz=Math.round(entity.position.z/CELL),tx=Math.round(camera.position.x/CELL),tz=Math.round(camera.position.z/CELL);
  const q=[[sx,sz]],seen=new Set([sx+","+sz]),prev=new Map();let end=null,head=0;
- while(head<q.length&&head<6500){const [x,z]=q[head++];if(x===tx&&z===tz){end=[x,z];break}
+ while(head<q.length&&head<2200){const [x,z]=q[head++];if(x===tx&&z===tz){end=[x,z];break}
   for(const [nx,nz] of [[x+1,z],[x-1,z],[x,z+1],[x,z-1]]){const k=nx+","+nz;if(seen.has(k)||isWallCell(nx,nz))continue;seen.add(k);prev.set(k,[x,z]);q.push([nx,nz])}
  }
  if(!end){cachedTarget=cellCenter(tx,tz);return cachedTarget}
