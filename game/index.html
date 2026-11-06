@@ -145,7 +145,7 @@ function makeCeilingMaterial(){
   ctx.fillStyle=g;ctx.fillRect(x-r,y-r,r*2,r*2);
  }
  const tex=new THREE.CanvasTexture(canvas);tex.wrapS=THREE.RepeatWrapping;tex.wrapT=THREE.RepeatWrapping;tex.colorSpace=THREE.SRGBColorSpace;
- ceilingMaterial=new THREE.MeshStandardMaterial({map:tex,color:0xffffff,roughness:1});return ceilingMaterial;
+ ceilingMaterial=new THREE.MeshStandardMaterial({map:tex,color:0xffffff,emissive:0x8b7947,emissiveIntensity:.42,roughness:1,side:THREE.FrontSide});return ceilingMaterial;
 }
 function makeMat(color,rough=1){return new THREE.MeshStandardMaterial({color,roughness:rough})}
 function box(w,h,d,mat,x,y,z){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;scene.add(m);return m}
