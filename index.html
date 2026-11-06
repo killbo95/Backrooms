@@ -3,12 +3,47 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta http-equiv="refresh" content="0;url=game/">
-<title>THE BACKROOMS — Level 0</title>
-<link rel="canonical" href="game/">
+<meta name="theme-color" content="#090a08">
+<title>THE BACKROOMS — Enter Level 0</title>
+<style>
+:root{--yellow:#d5c66b;--paper:#e9e2bd}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:#090a08;color:var(--paper);font-family:Arial,Helvetica,sans-serif}
+body{min-height:100vh;display:grid;place-items:center;padding:24px;overflow:hidden;background:radial-gradient(ellipse at 72% 38%,#726a37 0%,#262719 38%,#090a08 78%)}
+.panel{width:min(600px,100%);padding:clamp(28px,6vw,58px);border-left:2px solid #c7b85f;background:rgba(7,8,6,.78);box-shadow:0 20px 100px #0008}
+.eyebrow{font-size:10px;letter-spacing:.34em;color:#c9bb6d;margin-bottom:22px}
+h1{font-family:Georgia,serif;font-size:clamp(48px,10vw,88px);line-height:.88;letter-spacing:-.055em;color:#e7dfb8;margin:0 0 24px;font-weight:400}
+h1 em{font-style:normal;color:#b9a94f}
+p{max-width:420px;color:#aaa78f;font-size:14px;line-height:1.8;margin:0 0 30px}
+button{border:1px solid #c6b85e;background:#c6b85e;color:#14140d;padding:15px 26px;font-weight:bold;font-size:11px;letter-spacing:.2em;cursor:pointer;transition:.2s}
+button:hover{background:#e6d77e;transform:translateY(-2px)}
+.controls{margin-top:27px;padding-top:19px;border-top:1px solid #ffffff1c;display:grid;grid-template-columns:1fr 1fr;gap:12px;color:#9e9b85;font-size:11px;letter-spacing:.08em;line-height:1.6}
+.controls b{color:#ded7b3}
+.warning{font-size:10px;color:#7f7d6c;margin-top:20px;letter-spacing:.08em}
+#loading{display:none;color:#d5c66b;font-size:11px;letter-spacing:.2em;margin-top:20px}
+</style>
 </head>
 <body>
-<p>Loading the 3D Backrooms game… <a href="game/">Click here if you are not redirected.</a></p>
-<script>window.location.replace(new URL("game/", window.location.href).href);</script>
+<main class="panel">
+<div class="eyebrow">AN UNAUTHORIZED PLACE</div>
+<h1>THE<br><em>BACKROOMS</em></h1>
+<p>You have slipped out of reality. The lights hum overhead. Somewhere in this place, something has heard you arrive. Find three power cells and reach the exit.</p>
+<button id="enter">ENTER LEVEL 0&nbsp; →</button>
+<div id="loading">LOADING LEVEL 0…</div>
+<div class="controls">
+<div><b>W A S D</b> &nbsp; Move</div><div><b>MOUSE</b> &nbsp; Look around</div>
+<div><b>SHIFT</b> &nbsp; Sprint</div><div><b>F</b> &nbsp; Flashlight</div>
+<div><b>E</b> &nbsp; Interact</div><div><b>ESC</b> &nbsp; Pause</div>
+</div>
+<div class="warning">HEADPHONES RECOMMENDED · KEEP MOVING · DO NOT TRUST THE HUM</div>
+</main>
+<script>
+document.getElementById('enter').addEventListener('click',function(){
+  this.disabled=true;
+  this.textContent='LOADING…';
+  document.getElementById('loading').style.display='block';
+  window.location.href='game/';
+});
+</script>
 </body>
 </html>
