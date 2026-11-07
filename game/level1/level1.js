@@ -11,7 +11,7 @@ export function buildLevelOne(THREE,scene,randomOpenCell,cellCenter){
  const button=new THREE.Mesh(new THREE.BoxGeometry(.22,.5,.12),sign);button.position.set(2.05,1.35,-3.25);lift.add(button);
  const light=new THREE.PointLight(0xb8d69a,3.2,13);light.position.set(0,3.4,-2.9);lift.add(light);scene.add(lift);
  function buildLevelOneEntities(THREE,scene,randomOpenCell,cellCenter){
- levelEntities=[];
+ const levelEntities=[];
  const dark=new THREE.MeshStandardMaterial({color:0x101311,roughness:1}),pale=new THREE.MeshStandardMaterial({color:0x777d76,roughness:.95});
  const eye=new THREE.MeshBasicMaterial({color:0xe5d9a0}),glow=new THREE.MeshBasicMaterial({color:0xffe9a0});
  const addActor=(kind,range,speed)=>{
