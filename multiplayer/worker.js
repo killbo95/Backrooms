@@ -124,7 +124,8 @@ export class BackroomsRoom {
           z: Number(data.z) || 0,
           yaw: Number(data.yaw) || 0,
           pitch: Math.max(-1.35, Math.min(1.35, Number(data.pitch) || 0)),
-          level: Number(data.level) === 1 ? 1 : 0
+          level: Number(data.level) === 1 ? 1 : 0,
+          flashOn: data.flashOn !== false
         };
         this.broadcast(state, playerId);
       } else if (data.type === "progress") {
