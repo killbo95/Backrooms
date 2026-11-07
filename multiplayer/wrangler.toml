@@ -1,0 +1,11 @@
+name = "backrooms-multiplayer"
+main = "worker.js"
+compatibility_date = "2026-11-07"
+
+[[durable_objects.bindings]]
+name = "ROOMS"
+class_name = "BackroomsRoom"
+
+[[migrations]]
+tag = "v1"
+new_classes = ["BackroomsRoom"]
