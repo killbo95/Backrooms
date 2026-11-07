@@ -151,6 +151,11 @@ function ensureChunk(cx,cz){
   // Wall-mounted controls on the right-hand side of the entrance.
   box(.18,1.25,.12,9.15,1.55,-8.2,darkSteel);box(.08,.72,.08,9.03,1.6,-8.12,safety);
   box(.18,1.25,.12,9.15,1.55,-5.6,darkSteel);
+  const redButtonMat=new THREE.MeshStandardMaterial({color:0x9d3430,emissive:0x3a0908,emissiveIntensity:.5});
+  const greenButtonMat=new THREE.MeshStandardMaterial({color:0x39a66a,emissive:0x0c3b1d,emissiveIntensity:.55});
+  const amberButtonMat=new THREE.MeshStandardMaterial({color:0xd1ad38,emissive:0x59420a,emissiveIntensity:.45});
+  const button=(mat,y,z)=>{const b=new THREE.Mesh(new THREE.CylinderGeometry(.13,.13,.09,12),mat);b.rotation.z=Math.PI/2;b.position.set(9.02,y,z);group.add(b)};
+  button(greenButtonMat,1.82,-8.2);button(redButtonMat,1.32,-8.2);button(amberButtonMat,1.58,-5.6);
   // Compact floor trim and overhead supports.
   box(23.5,.1,23.5,0,-.205,0,darkSteel);
   for(const z of [-7,0,7])box(23,.13,.22,0,4.12,z,darkSteel);
