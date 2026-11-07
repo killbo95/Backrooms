@@ -84,7 +84,7 @@ export class BackroomsRoom {
       found: this.state.found,
       players: Array.from(this.sockets, ([id, p]) => ({ id, name: p.name }))
     }));
-    this.broadcast({ type: "player-joined", id: playerId, name });
+    this.broadcast({ type: "player-joined", id: playerId, name }, playerId);
 
     server.addEventListener("message", event => {
       if (typeof event.data !== "string" || event.data.length > 2048) return;
