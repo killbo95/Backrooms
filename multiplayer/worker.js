@@ -79,6 +79,7 @@ export class BackroomsRoom {
     server.send(JSON.stringify({
       type: "welcome",
       id: playerId,
+      slot: this.sockets.size - 1,
       seed: this.state.seed,
       level: this.state.level,
       found: this.state.found,
