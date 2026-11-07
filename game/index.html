@@ -162,8 +162,9 @@ function ensureChunk(cx,cz){
  }
  scene.add(group);loadedChunks.set(key,{group});
 }
+let objectiveRng=()=>Math.random();
 function randomOpenCell(minDist,maxDist){
- for(let tries=0;tries<12000;tries++){const a=Math.random()*Math.PI*2,d=minDist+Math.random()*(maxDist-minDist),x=Math.round(Math.cos(a)*d),z=Math.round(Math.sin(a)*d);if(!isWallCell(x,z))return [x,z]}
+ for(let tries=0;tries<12000;tries++){const a=objectiveRng()*Math.PI*2,d=minDist+objectiveRng()*(maxDist-minDist),x=Math.round(Math.cos(a)*d),z=Math.round(Math.sin(a)*d);if(!isWallCell(x,z))return [x,z]}
  return [Math.round(minDist),0];
 }
 let wallpaperMaterial=null;
@@ -269,6 +270,7 @@ function addLevelOneEntities(){
  addActor('hound',[8,12],4.15);addActor('smiler',[9,13],1.05);addActor('skin-stealer',[13,18],2.35);
 }
 function buildWorld(){
+ objectiveRng=randomFor(917,391);
  if(scene)scene.clear();
  loadedChunks.clear();chunkMaps.clear();walls.length=0;pickups.length=0;lights.length=0;breachObstacles.length=0;breachByChunk.clear();activeChunkX=NaN;activeChunkZ=NaN;
  wallpaperMaterial=null;ceilingMaterial=null;carpetMaterial=null;levelEntities=[];
