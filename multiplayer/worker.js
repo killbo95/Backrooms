@@ -33,7 +33,7 @@ export default {
       const response = await room.fetch("https://room.internal/init", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ seed })
+        body: JSON.stringify({ seed, maxPlayers: Math.max(2, Math.min(20, Math.floor(Number(body.maxPlayers) || 4))) })
       });
       if (!response.ok) return json({ error: "Could not create room." }, 503);
       return json({ code, seed });
@@ -53,7 +53,7 @@ export class BackroomsRoom {
   constructor(ctx, env) {
     this.ctx = ctx;
     this.env = env;
-    this.state = { seed: null, level: 0, found: 0 };
+    this.state = { seed: null, level: 0, found: 0, maxPlayers: 4 };
     this.sockets = new Map();
     this.ready = this.hydrate();
   }
@@ -64,7 +64,8 @@ export class BackroomsRoom {
       this.state = {
         seed: Number.isFinite(saved.seed) ? saved.seed : null,
         level: saved.level === 1 ? 1 : 0,
-        found: Math.max(0, Math.min(3, Number(saved.found) || 0))
+        found: Math.max(0, Math.min(3, Number(saved.found) || 0)),
+        maxPlayers: Math.max(2, Math.min(20, Math.floor(Number(saved.maxPlayers) || 4)))
       };
     }
   }
@@ -80,6 +81,7 @@ export class BackroomsRoom {
       const data = await request.json();
       if (this.state.seed === null) {
         this.state.seed = data.seed;
+        this.state.maxPlayers = Math.max(2, Math.min(20, Math.floor(Number(data.maxPlayers) || 4)));
         await this.persist();
       }
       return Response.json({ ok: true });
@@ -90,7 +92,7 @@ export class BackroomsRoom {
     if (this.state.seed === null) return new Response("Room not found", { status: 404 });
 
     const name = (url.searchParams.get("name") || "Explorer").replace(/[^a-zA-Z0-9 _-]/g, "").trim().slice(0, 16) || "Explorer";
-    if (this.sockets.size >= 4) return new Response("Room is full", { status: 409 });
+    if (this.sockets.size >= this.state.maxPlayers) return new Response("Room is full (" + this.state.maxPlayers + " players maximum)", { status: 409 });
 
     const pair = new WebSocketPair();
     const [client, server] = Object.values(pair);
@@ -101,6 +103,7 @@ export class BackroomsRoom {
       type: "welcome",
       id: playerId,
       slot: this.sockets.size - 1,
+      maxPlayers: this.state.maxPlayers,
       seed: this.state.seed,
       level: this.state.level,
       found: this.state.found,
