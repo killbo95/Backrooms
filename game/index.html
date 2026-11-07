@@ -141,9 +141,6 @@ function ensureChunk(cx,cz){
   // Heavy segmented roll-up shutter. It lifts as one animated panel into the overhead housing.
   garageDoorGroup=new THREE.Group();garageDoorGroup.position.set(0,0,-11.62);group.add(garageDoorGroup);
   const shutterMat=new THREE.MeshStandardMaterial({color:0x687174,metalness:.68,roughness:.48});
-  for(let y=.13;y<4.05;y+=.24){const slat=box(7.85,.19,.12,0,y,0,shutterMat);garageDoorGroup.add(slat);group.remove(slat)}
-  // Replace the temporary world-positioned slats with local shutter slats.
-  garageDoorGroup.clear();
   for(let y=.13;y<4.05;y+=.24){const slat=new THREE.Mesh(new THREE.BoxGeometry(7.85,.19,.12),shutterMat);slat.position.set(0,y,0);garageDoorGroup.add(slat)}
   const bottomBar=new THREE.Mesh(new THREE.BoxGeometry(8,.22,.2),darkSteel);bottomBar.position.set(0,.08,.015);garageDoorGroup.add(bottomBar);
   // Wall-mounted controls on the right-hand side of the entrance.
@@ -170,11 +167,11 @@ function ensureChunk(cx,cz){
   for(let n=0;n<3;n++){const torch=box(.16,.16,.85,6.9+n*1.05,1.48,-3,steel);torch.rotation.z=Math.PI/2}
   // Stations use proximity prompts and E to interact.
   garageStations.push(
-   {name:'E — EQUIP HAZMAT SUIT',x:-8,z:-2,action:()=>{suitEquipped=true;showToast('HAZMAT SUIT EQUIPPED');playTone(520,.14,'triangle',.06)}},
-   {name:'E — CONNECT OXYGEN TANK',x:8,z:4,action:()=>{oxygenEquipped=true;stamina=100;$('stamina').style.width='100%';showToast('OXYGEN CONNECTED');playTone(620,.16,'sine',.06)}},
-   {name:'E — TAKE FLASHLIGHT',x:8,z:-3,action:()=>{flashlightEquipped=true;battery=100;flashOn=true;flashlight.visible=true;$('battery').textContent='100%';showToast('FLASHLIGHT EQUIPPED');playTone(720,.16,'sine',.06)}},
+   {name:'E — EQUIP HAZMAT SUIT',x:-8,z:-2,action:()=>{suitEquipped=true;updateGearStatus();showToast('HAZMAT SUIT EQUIPPED');playTone(520,.14,'triangle',.06)}},
+   {name:'E — CONNECT OXYGEN TANK',x:8,z:4,action:()=>{oxygenEquipped=true;updateGearStatus();stamina=100;$('stamina').style.width='100%';showToast('OXYGEN CONNECTED');playTone(620,.16,'sine',.06)}},
+   {name:'E — TAKE FLASHLIGHT',x:8,z:-3,action:()=>{flashlightEquipped=true;updateGearStatus();battery=100;flashOn=true;flashlight.visible=true;$('battery').textContent='100%';showToast('FLASHLIGHT EQUIPPED');playTone(720,.16,'sine',.06)}},
    {name:'E — TOGGLE GARAGE LIGHTS',x:9,z:-5.6,action:()=>{garageLightsOn=!garageLightsOn;if(garageMainLight)garageMainLight.intensity=garageLightsOn?7:0.08;if(garageLampMaterial)garageLampMaterial.emissiveIntensity=garageLightsOn?1.2:0.015;showToast(garageLightsOn?'GARAGE LIGHTS ON':'GARAGE LIGHTS OFF');playTone(garageLightsOn?620:180,.12,'sine',.05)}},
-   {name:'E — OPEN / CLOSE GARAGE DOOR',x:9,z:-8.2,action:()=>{if(!garageDoorTarget&&(!suitEquipped||!oxygenEquipped||!flashlightEquipped)){const missing=[!suitEquipped?'SUIT':null,!oxygenEquipped?'OXYGEN':null,!flashlightEquipped?'FLASHLIGHT':null].filter(Boolean).join(' · ');showToast('GEAR REQUIRED: '+missing);playTone(160,.2,'square',.035);return}garageDoorTarget=garageDoorTarget>.5?0:1;showToast(garageDoorTarget?'GARAGE DOOR OPENING':'GARAGE DOOR CLOSING');playTone(garageDoorTarget?260:190,.25,'sawtooth',.045)}}
+   {name:'E — OPEN / CLOSE GARAGE DOOR',x:9,z:-8.2,action:()=>{if(!garageDoorTarget&&(!suitEquipped||!oxygenEquipped||!flashlightEquipped)){const missing=[!suitEquipped?'SUIT':null,!oxygenEquipped?'OXYGEN':null,!flashlightEquipped?'FLASHLIGHT':null].filter(Boolean).join(' · ');showToast('GEAR REQUIRED: '+missing);playTone(160,.2,'square',.035);return}garageDoorTarget=garageDoorTarget>.5?0:1;if(garageDoorTarget) $('objective').innerHTML='MISSION <strong>ENTER LEVEL 0</strong>';else updateGearStatus();showToast(garageDoorTarget?'GARAGE DOOR OPENING':'GARAGE DOOR CLOSING');playTone(garageDoorTarget?260:190,.25,'sawtooth',.045)}}
   );
   const lampMat=new THREE.MeshStandardMaterial({color:0xe4e1cf,emissive:0xcfc8a7,emissiveIntensity:1.2});garageLampMaterial=lampMat;
   for(const x of [-7,0,7]){box(2.6,.08,.8,x,4.0,0,darkSteel);box(2.35,.04,.65,x,3.93,0,lampMat)}
@@ -367,12 +364,13 @@ function message(s){$('message').textContent=s;$('message').style.opacity=s?1:0}
 function initAudio(){try{const C=window.AudioContext||window.webkitAudioContext;const ctx=new C();const osc=ctx.createOscillator(),gain=ctx.createGain(),filter=ctx.createBiquadFilter();osc.type='sawtooth';osc.frequency.value=58;filter.type='lowpass';filter.frequency.value=180;gain.gain.value=.018;osc.connect(filter);filter.connect(gain);gain.connect(ctx.destination);osc.start();return {ctx,osc,gain}}catch(e){return null}}
 let audio=null;
 function playTone(freq=440,dur=.12,type='sine',vol=.06){if(!audio)return;const o=audio.ctx.createOscillator(),g=audio.ctx.createGain();o.type=type;o.frequency.value=freq;g.gain.setValueAtTime(vol,audio.ctx.currentTime);g.gain.exponentialRampToValueAtTime(.001,audio.ctx.currentTime+dur);o.connect(g);g.connect(audio.ctx.destination);o.start();o.stop(audio.ctx.currentTime+dur)}
+function updateGearStatus(){const check=(v,label)=>label+': '+(v?'READY':'MISSING');$('objective').innerHTML='PREP CHECK <strong>'+[check(suitEquipped,'SUIT'),check(oxygenEquipped,'O₂'),check(flashlightEquipped,'LIGHT')].join(' · ')+'</strong>'}
 function startGame(seedOverride){
  currentLevel=0;worldSeed=Number.isFinite(seedOverride)?seedOverride:((Math.random()*0x7fffffff)|0);buildWorld();audio=initAudio();
  lastFrameAt=0;running=true;paused=false;won=false;stamina=100;battery=100;found=0;flashOn=false;suitEquipped=false;oxygenEquipped=false;flashlightEquipped=false;garageLightsOn=true;garageDoorOpen=0;garageDoorTarget=0;
  camera.position.copy(startPos);if(multiplayerSocket&&multiplayerId){const slot=Math.max(0,Number(window.multiplayerSlot)||0),count=Math.max(2,Math.min(20,Number(window.multiplayerMaxPlayers)||4)),angle=(slot/count)*Math.PI*2,radius=count<=4?.55:count<=8?.85:1.15;camera.position.x+=Math.cos(angle)*radius;camera.position.z+=Math.sin(angle)*radius}makeLocalAvatar();yaw=0;pitch=0;entitySpeed=2.6;lastPathAt=0;cachedTarget=null;
  flashlight.visible=false;pickups.forEach(p=>{p.taken=false;p.group.visible=true});
- $('objective').innerHTML='POWER CELLS <strong id="count">0 / 3</strong>';$('count').textContent='0 / 3';document.querySelector('.brand').textContent='KITSUNEST STUDIOS  /  FIELD RECORDING 001';$('overlay').style.display='none';$('hud').style.display='block';$('flash').style.opacity=0;
+ updateGearStatus();$('count').textContent='0 / 3';document.querySelector('.brand').textContent='KITSUNEST STUDIOS  /  FIELD RECORDING 001';$('overlay').style.display='none';$('hud').style.display='block';$('flash').style.opacity=0;
  clock.getDelta();animate();
 }
 function transitionLevel(level){currentLevel=level;found=0;worldSeed=(Math.random()*0x7fffffff)|0;startPos.set(0,1.65,0);buildWorld();camera.position.copy(startPos);camera.rotation.set(0,0,0);makeLocalAvatar();yaw=0;pitch=0;entitySpeed=2.6;lastPathAt=0;cachedTarget=null;stamina=100;battery=100;flashOn=true;flashlight.visible=true;$('objective').innerHTML=level===0?'POWER CELLS <strong id="count">0 / 3</strong>':'RETURN ROUTE <strong id="count">FIND ELEVATOR</strong>';document.querySelector('.brand').textContent=level===0?'KITSUNEST STUDIOS  /  FIELD RECORDING 001':'KITSUNEST STUDIOS  /  FIELD RECORDING 002';$('overlay').style.display='none';$('hud').style.display='block';$('flash').style.opacity=0;showToast(level===1?'LEVEL 1 — THE HABITAT':'RETURNED TO LEVEL 0');remotePlayers.forEach(p=>scene.add(p.group));sendNetwork({type:'progress',level:currentLevel,found});clock.getDelta();}
@@ -496,7 +494,7 @@ function updateRemotePlayers(dt){remotePlayers.forEach(p=>{p.group.position.lerp
  p.group.position.y=THREE.MathUtils.damp(p.group.position.y,moving?Math.abs(Math.sin(p.phase*2))*(running?.075:.04):0,10,dt);
  p.group.rotation.z=THREE.MathUtils.damp(p.group.rotation.z,moving&&running?Math.sin(p.phase)*.035:0,8,dt);})}
 
-function updateWorld(t){pickups.forEach(p=>{if(!p.taken){if(p.kind==='cell'){p.group.rotation.y+=.012;p.group.position.y=1.05+Math.sin(t*2.2)*.12}else if(p.kind==='almond'){p.group.rotation.y+=.006;p.group.position.y=p.baseY+Math.sin(t*1.8)*.035}}});flashlight.intensity=flashOn?55:0;if(garageDoorGroup){garageDoorOpen=THREE.MathUtils.damp(garageDoorOpen,garageDoorTarget,3.2,Math.min(.05,clock.getDelta?.()||.016));garageDoorGroup.position.y=garageDoorOpen*4.35;}}
+function updateWorld(t){pickups.forEach(p=>{if(!p.taken){if(p.kind==='cell'){p.group.rotation.y+=.012;p.group.position.y=1.05+Math.sin(t*2.2)*.12}else if(p.kind==='almond'){p.group.rotation.y+=.006;p.group.position.y=p.baseY+Math.sin(t*1.8)*.035}}});flashlight.intensity=flashOn?55:0;if(garageDoorGroup){garageDoorOpen=THREE.MathUtils.damp(garageDoorOpen,garageDoorTarget,3.2,.033);garageDoorGroup.position.y=garageDoorOpen*4.35;}}
 function animate(){if(!running)return;requestAnimationFrame(animate);const now=performance.now();if(now-lastFrameAt<1000/30)return;lastFrameAt=now;const dt=Math.min(clock.getDelta(),.05),t=clock.elapsedTime;updateChunks();updatePlayer(dt);let nearbyStation=null,nearbyDistance=3.4;for(const item of garageStations){const d=Math.hypot(camera.position.x-item.x,camera.position.z-item.z);if(d<nearbyDistance){nearbyStation=item;nearbyDistance=d}}if(nearbyStation)message(nearbyStation.name);else if(!pickups.some(p=>!p.taken&&camera.position.distanceTo(p.group.position)<2.7))message('');levelEntities.forEach(actor=>updateEntity(actor,dt,t));updateWorld(t);updateRemotePlayers(dt);if(multiplayerSocket&&multiplayerSocket.readyState===WebSocket.OPEN&&now-lastNetSend>100){lastNetSend=now;sendNetwork({type:'state',x:camera.position.x,y:camera.position.y,z:camera.position.z,yaw,pitch,level:currentLevel,flashOn,sprinting:localSprinting})}let renderCamera=camera;
  if(bodyCamTargetId){
   const watched=remotePlayers.get(bodyCamTargetId);
