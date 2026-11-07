@@ -30,6 +30,7 @@ button:hover{background:#e6d77e}button:disabled{opacity:.5;cursor:wait}
 <p>You have slipped out of reality. The lights hum overhead. Find three power cells, avoid what is hunting you, and find a way out. Now you don't have to go alone.</p>
 <label for="playerName">PLAYER NAME</label><input id="playerName" maxlength="16" value="Explorer" autocomplete="nickname">
 <label for="serverUrl">MULTIPLAYER SERVER URL</label><input id="serverUrl" placeholder="Automatically configured — edit only if needed" autocomplete="url">
+<label for="maxPlayers">MAX PLAYERS IN YOUR ROOM</label><select id="maxPlayers" style="width:100%;padding:13px;background:#11130f;color:#e8e2c8;border:1px solid #55533f;border-radius:3px;font:inherit;margin:7px 0 14px"><option value="2">2 players</option><option value="3">3 players</option><option value="4" selected>4 players</option><option value="5">5 players</option><option value="6">6 players</option><option value="7">7 players</option><option value="8">8 players</option><option value="9">9 players</option><option value="10">10 players</option><option value="11">11 players</option><option value="12">12 players</option><option value="13">13 players</option><option value="14">14 players</option><option value="15">15 players</option><option value="16">16 players</option><option value="17">17 players</option><option value="18">18 players</option><option value="19">19 players</option><option value="20">20 players</option></select>
 <div class="actions">
 <button id="solo">PLAY SOLO</button><button id="create">CREATE MULTIPLAYER ROOM</button>
 </div>
@@ -42,7 +43,7 @@ button:hover{background:#e6d77e}button:disabled{opacity:.5;cursor:wait}
 <div><b>SHIFT</b> &nbsp; Sprint</div><div><b>F</b> &nbsp; Flashlight</div>
 <div><b>E</b> &nbsp; Interact</div><div><b>ESC</b> &nbsp; Pause</div>
 </div>
-<div class="note">Multiplayer supports up to 4 explorers in one room. The multiplayer server must be deployed once before online rooms can be created.</div>
+<div class="note">Choose your room size before creating it: 2–20 explorers. The host counts as one player. The multiplayer server must be deployed once before online rooms can be created.</div>
 </main>
 <script>
 const DEFAULT_WORKER_URL='https://backrooms.yahyamsalam2.workers.dev';
@@ -57,7 +58,7 @@ $('solo').onclick=()=>launch({mode:'solo'});
 $('create').onclick=async()=>{
  if(!server()){status('Multiplayer server URL is missing.');return}
  $('create').disabled=true;status('Creating room…');
- try{const seed=Math.floor(Math.random()*0x7fffffff),r=await fetch(server()+'/api/rooms',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({seed})});const data=await r.json();if(!r.ok)throw new Error(data.error||'Room creation failed');localStorage.setItem('backroomsServer',server());launch({room:data.code,name:name(),seed:data.seed,host:'1'})}
+ try{const seed=Math.floor(Math.random()*0x7fffffff),r=await fetch(server()+'/api/rooms',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({seed,maxPlayers:Number($('maxPlayers').value)||4})});const data=await r.json();if(!r.ok)throw new Error(data.error||'Room creation failed');localStorage.setItem('backroomsServer',server());launch({room:data.code,name:name(),seed:data.seed,host:'1'})}
  catch(e){status('Could not create room: '+e.message)}finally{$('create').disabled=false}
 };
 $('join').onclick=()=>{const code=$('roomCode').value.trim().toUpperCase();if(!/^[A-Z0-9]{6}$/.test(code)){status('Enter the 6-character room code.');return}if(!server()){status('Multiplayer server URL is missing.');return}localStorage.setItem('backroomsServer',server());launch({room:code,name:name()})};
