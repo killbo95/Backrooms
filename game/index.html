@@ -314,9 +314,15 @@ function startGame(seedOverride){
  clock.getDelta();animate();
 }
 function transitionLevel(level){currentLevel=level;found=0;worldSeed=(Math.random()*0x7fffffff)|0;startPos.set(0,1.65,0);buildWorld();camera.position.copy(startPos);camera.rotation.set(0,0,0);makeLocalAvatar();yaw=0;pitch=0;entitySpeed=2.6;lastPathAt=0;cachedTarget=null;stamina=100;battery=100;flashOn=true;flashlight.visible=true;$('objective').innerHTML=level===0?'POWER CELLS <strong id="count">0 / 3</strong>':'RETURN ROUTE <strong id="count">FIND ELEVATOR</strong>';document.querySelector('.brand').textContent=level===0?'KITSUNEST STUDIOS  /  FIELD RECORDING 001':'KITSUNEST STUDIOS  /  FIELD RECORDING 002';$('overlay').style.display='none';$('hud').style.display='block';$('flash').style.opacity=0;showToast(level===1?'LEVEL 1 — THE HABITAT':'RETURNED TO LEVEL 0');remotePlayers.forEach(p=>scene.add(p.group));sendNetwork({type:'progress',level:currentLevel,found});clock.getDelta();}
-function pauseGame(){if(!running)return;paused=true;running=false;document.exitPointerLock?.();$('intro').textContent='The corridors are still there. Whatever is following you has not stopped.';$('start').textContent='RETURN TO THE BACKROOMS';$('start').style.display='inline-block';$('overlay').style.display='flex';$('hud').style.display='none';}
+function pauseGame(){if(!running)return;paused=true;running=false;keys.KeyW=keys.KeyA=keys.KeyS=keys.KeyD=keys.ShiftLeft=keys.ShiftRight=false;document.exitPointerLock?.();$('intro').textContent='Your progress is saved for this session. Return when ready.';$('start').textContent='RESUME GAME';$('start').style.display='inline-block';$('overlay').style.display='flex';$('hud').style.display='none';}
+function resumeGame(){
+ if(!paused||running)return;
+ paused=false;running=true;lastFrameAt=0;
+ $('overlay').style.display='none';$('hud').style.display='block';
+ clock.getDelta();animate();
+}
 function endGame(win){running=false;won=win;document.exitPointerLock?.();$('hud').style.display='none';$('overlay').style.display='flex';$('intro').textContent=win?'The emergency door opens. Cold air. Real air. You made it out — for now.':'The corridors fall silent. You were not alone.';$('start').style.display='inline-block';$('start').textContent=win?'PLAY AGAIN':'TRY AGAIN';$('overlay').querySelector('.eyebrow').textContent=win?'EXIT FOUND':'SIGNAL LOST';$('overlay').querySelector('.title').innerHTML=win?'YOU<br><em>ESCAPED</em>':'LOST IN<br><em>LEVEL '+currentLevel+'</em>'}
-$('start').addEventListener('click',()=>{if(!running)startGame()});
+$('start').addEventListener('click',()=>{if(running)return;if(paused)resumeGame();else startGame()});
 document.addEventListener('pointerlockchange',()=>{locked=document.pointerLockElement===renderer?.domElement;if(running&&!locked&&!('ontouchstart'in window))pauseGame()});
 document.addEventListener('mousemove',e=>{if(!running||('ontouchstart'in window))return;if(!locked&&e.target!==renderer?.domElement)return;yaw-=e.movementX*.0022;pitch-=e.movementY*.0022;pitch=Math.max(-1.35,Math.min(1.35,pitch));camera.rotation.set(pitch,yaw,0)});
 document.addEventListener('keydown',e=>{if(e.code==='KeyC'&&running&&!e.repeat){cycleBodyCam();return}keys[e.code]=true;if(e.code==='Escape'&&running)pauseGame();if(e.code==='KeyF'&&running){flashOn=!flashOn;flashlight.visible=flashOn;playTone(flashOn?620:260,.08)}if(e.code==='KeyE'&&running)interact()});
