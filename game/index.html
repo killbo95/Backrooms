@@ -455,6 +455,7 @@ function buildWorld(){
  }else{
   const levelOne=buildLevelOne(THREE,scene,randomOpenCell,cellCenter);
   window.elevatorCell=levelOne.elevatorCell;window.levelOneElevator=levelOne.elevator;levelEntities=levelOne.entities;
+ }
 }
 let yaw=0,pitch=0,entitySpeed=1.55,lastStep=0,moveVec=new THREE.Vector3(),entityRunPhase=0,entityRunBlend=0;
 function showToast(s){$('toast').textContent=s;$('toast').style.opacity=1;clearTimeout(showToast.t);showToast.t=setTimeout(()=>$('toast').style.opacity=0,2100)}
