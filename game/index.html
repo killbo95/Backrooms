@@ -368,7 +368,9 @@ function updateEntity(dt,t){
   toPlayer.normalize();
   const next=entity.position.clone().addScaledVector(toPlayer,speed*dt);
   if(!collides(next,.48))entity.position.copy(next);
-  entity.rotation.y=Math.atan2(toPlayer.x,toPlayer.z);
+  // The creature's face and chest point along local -Z, so rotate that
+  // forward axis toward the direction of travel (not away from it).
+  entity.rotation.y=Math.atan2(-toPlayer.x,-toPlayer.z);
  }
  // Fast alternating arm and leg swings, with a small vertical running bounce.
  const stride=moving?Math.sin(t*10.5):0;
