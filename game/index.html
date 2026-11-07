@@ -501,20 +501,15 @@ function updatePlayer(dt){const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math
  if(sprint)stamina=Math.max(0,stamina-8*dt);else stamina=Math.min(100,stamina+17*dt);$('stamina').style.width=stamina+'%';battery=Math.max(0,battery-(flashOn?.045:0)*dt);if(battery<=0&&flashOn){flashOn=false;flashlight.visible=false;showToast('FLASHLIGHT BATTERY EMPTY')}if(battery<100&&!flashOn)battery=Math.min(100,battery+.012*dt);$('battery').textContent=Math.round(battery)+'%';}
 let lastPathAt=0,cachedTarget=null;
 function pathTarget(actor){
- const now=performance.now();if(actor.cachedTarget&&now-actor.lastPathAt<250)return actor.cachedTarget;actor.lastPathAt=now;
- const px=camera.position.x,pz=camera.position.z,ex=actor.group.position.x,ez=actor.group.position.z;
- const dx=ex-px,dz=ez-pz,d=Math.hypot(dx,dz);
- // Keep every Level 1 entity in a 20–30 foot band around the player.
- // Aim for the middle of that band; hold position while already inside it.
- if(d>=20&&d<=30){actor.cachedTarget=actor.group.position.clone();return actor.cachedTarget}
- const inv=d>.001?1/d:0,ux=d>.001?dx*inv:1,uz=d>.001?dz*inv:0;
- const desired=25,tx=Math.round((px+ux*desired)/CELL),tz=Math.round((pz+uz*desired)/CELL);
- const sx=Math.round(ex/CELL),sz=Math.round(ez/CELL);
- const q=[[sx,sz]],seen=new Set([sx+","+sz]),prev=new Map();let end=null,head=0;
- while(head<q.length&&head<2200){const [x,z]=q[head++];if(x===tx&&z===tz){end=[x,z];break}for(const [nx,nz] of [[x+1,z],[x-1,z],[x,nz+1],[x,nz-1]]){const k=nx+","+nz;if(seen.has(k)||isWallCell(nx,nz))continue;seen.add(k);prev.set(k,[x,z]);q.push([nx,nz])}}
- if(!end){actor.cachedTarget=cellCenter(tx,tz);return actor.cachedTarget}let cur=end;while(prev.has(cur[0]+","+cur[1])){const p=prev.get(cur[0]+","+cur[1]);if(p[0]===sx&&p[1]===sz)break;cur=p}actor.cachedTarget=cellCenter(cur[0],cur[1]);return actor.cachedTarget;
-}
-function updateEntity(actor,dt,t){
+  // Level 1 is a broad, open industrial habitat rather than a maze. Direct
+  // steering avoids repeated grid searches that can stall older computers.
+  const px=camera.position.x,pz=camera.position.z,ex=actor.group.position.x,ez=actor.group.position.z;
+  const dx=ex-px,dz=ez-pz,d=Math.hypot(dx,dz);
+  if(d>=20&&d<=30)return actor.group.position.clone();
+  const ux=d>.001?dx/d:1,uz=d>.001?dz/d:0;
+  return new THREE.Vector3(px+ux*25,0,pz+uz*25);
+ }
+ function updateEntity(actor,dt,t){
  const target=pathTarget(actor),dir=new THREE.Vector3(target.x-actor.group.position.x,0,target.z-actor.group.position.z),d=Math.hypot(camera.position.x-actor.group.position.x,camera.position.z-actor.group.position.z);let travelled=0;
  if(dir.length()>.45){dir.normalize();const next=actor.group.position.clone().addScaledVector(dir,actor.speed*dt);if(!collides(next,actor.kind==='hound'?.55:.42)){travelled=actor.group.position.distanceTo(next);actor.group.position.copy(next)}actor.group.rotation.y=Math.atan2(-dir.x,-dir.z)}
  actor.phase+=travelled*(actor.kind==='hound'?6.5:4.5);actor.blend=THREE.MathUtils.damp(actor.blend||0,travelled>0?1:0,8,dt);actor.limbs.forEach((limb,i)=>{limb.rotation.z=Math.sin(actor.phase)*actor.blend*(i%2===0?.38:-.38)});
