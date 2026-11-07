@@ -326,7 +326,7 @@ function playTone(freq=440,dur=.12,type='sine',vol=.06){if(!audio)return;const o
 function startGame(){
  worldSeed=(Math.random()*0x7fffffff)|0;buildWorld();audio=initAudio();
  lastFrameAt=0;running=true;paused=false;won=false;stamina=100;battery=100;found=0;flashOn=true;
- camera.position.copy(startPos);yaw=0;pitch=0;entitySpeed=1.9;lastPathAt=0;cachedTarget=null;
+ camera.position.copy(startPos);yaw=0;pitch=0;entitySpeed=2.6;lastPathAt=0;cachedTarget=null;
  flashlight.visible=true;pickups.forEach(p=>{p.taken=false;p.group.visible=true});
  $('count').textContent='0 / 3';$('overlay').style.display='none';$('hud').style.display='block';$('flash').style.opacity=0;
  clock.getDelta();animate();
@@ -363,7 +363,7 @@ function updateEntity(dt,t){
  const toPlayer=new THREE.Vector3(target.x-entity.position.x,0,target.z-entity.position.z);
  const d=Math.hypot(camera.position.x-entity.position.x,camera.position.z-entity.position.z);
  const moving=toPlayer.length()>.45;
- const speed=entitySpeed+(found*.22)+(d<12?.65:0);
+ const speed=entitySpeed+(found*.25)+(d<12?.85:0);
  let travelled=0;
  if(moving){
   toPlayer.normalize();
