@@ -41,33 +41,44 @@ function cellCenter(x,z){return new THREE.Vector3(x*CELL,0,z*CELL)}
 function randomFor(cx,cz){let a=(worldSeed^Math.imul(cx+10000,374761393)^Math.imul(cz+10000,668265263))>>>0;return ()=>{a=(a+0x6D2B79F5)>>>0;let t=a;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return ((t^(t>>>14))>>>0)/4294967296}}
 function makeChunkMap(cx,cz){
  const key=cx+","+cz;if(chunkMaps.has(key))return chunkMaps.get(key);
- const map=Array.from({length:CHUNK},()=>Array(CHUNK).fill(true)),rnd=randomFor(cx,cz);
- const stack=[[3,3]],seen=new Set(["3,3"]);
- const carve=(x,z)=>{map[z][x]=false};
- carve(7,7);
- while(stack.length){
-  const [nx,nz]=stack[stack.length-1],dirs=[[1,0],[-1,0],[0,1],[0,-1]].sort(()=>rnd()-.5);
-  let moved=false;
-  for(const [dx,dz] of dirs){const x=nx+dx,z=nz+dz,k=x+","+z;if(x<0||x>6||z<0||z>6||seen.has(k))continue;
-   seen.add(k);carve(1+nx*2,1+nz*2);carve(1+x*2,1+z*2);carve(1+(nx+x),1+(nz+z));stack.push([x,z]);moved=true;break;
+ // Level 0 is an endless abandoned office, NOT a corridor maze.
+ // Start with a broad open floor and scatter short wall remnants and pillars.
+ const map=Array.from({length:CHUNK},()=>Array(CHUNK).fill(false));
+ const rnd=randomFor(cx,cz);
+ const addWall=(x,z)=>{if(x>0&&x<14&&z>0&&z<14)map[z][x]=true};
+ // Broken, short partition walls create the familiar Backrooms sightlines
+ // without sealing off whole routes or creating maze-like dead ends.
+ for(let n=0;n<17;n++){
+  const horizontal=rnd()<.5;
+  const len=2+(rnd()<.35?1:0);
+  const x=2+Math.floor(rnd()*10),z=2+Math.floor(rnd()*10);
+  for(let k=0;k<len;k++){
+   const wx=x+(horizontal?k:0),wz=z+(horizontal?0:k);
+   // Keep the chunk centre relatively open and avoid long straight barriers.
+   if(Math.abs(wx-7)<2&&Math.abs(wz-7)<2)continue;
+   if(rnd()>.12)addWall(wx,wz);
   }
-  if(!moved)stack.pop();
  }
- // Add occasional cross-passages to the DFS maze. This creates loops so routes
- // don't collapse into a chain of isolated dead ends.
- for(let z=0;z<7;z++)for(let x=0;x<7;x++){
-  if(x<6&&rnd()<.16)map[1+z*2][2+x*2]=false;
-  if(z<6&&rnd()<.16)map[2+z*2][1+x*2]=false;
+ // Scattered single pillars and isolated wall fragments.
+ for(let n=0;n<13;n++){
+  const x=1+Math.floor(rnd()*13),z=1+Math.floor(rnd()*13);
+  if(Math.abs(x-7)<2&&Math.abs(z-7)<2)continue;
+  if(rnd()<.72)addWall(x,z);
  }
- // Every chunk has four aligned portals, connecting it to its neighbours.
- map[7][0]=false;map[7][14]=false;map[0][7]=false;map[14][7]=false;
- // Reserve the centre of Level 0 for a permanent garage built into the maze.
- // The player starts inside it; its front shutter opening leads straight into the corridors.
+ // Wide openings on every chunk edge keep the world seamless and traversable.
+ for(const p of [4,7,10]){
+  map[p][0]=false;map[p][14]=false;map[0][p]=false;map[14][p]=false;
+ }
+ // Additional edge gaps ensure no chunk boundary becomes a bottleneck.
+ for(let n=0;n<3;n++){
+  const p=2+Math.floor(rnd()*11);
+  map[p][0]=false;map[p][14]=false;map[0][p]=false;map[14][p]=false;
+ }
+ // Reserve the centre of Level 0 for the permanent preparation garage.
  if(currentLevel===0&&cx===0&&cz===0){
-  // Compact 3x3-cell garage (24x24 world units) around the spawn.
   for(let z=6;z<=8;z++)for(let x=6;x<=8;x++)map[z][x]=false;
   for(let n=5;n<=9;n++){map[5][n]=true;map[9][n]=true;map[n][5]=true;map[n][9]=true}
-  map[5][7]=false; // single wide entrance toward the maze
+  map[5][7]=false;
   for(const z of [4,3,2])map[z][7]=false;
  }
  const result=map.map(row=>row.slice());chunkMaps.set(key,result);return result;
