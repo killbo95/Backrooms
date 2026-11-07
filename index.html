@@ -29,7 +29,7 @@ button:hover{background:#e6d77e}button:disabled{opacity:.5;cursor:wait}
 <h1>THE<br><em>BACKROOMS</em></h1>
 <p>You have slipped out of reality. The lights hum overhead. Find three power cells, avoid what is hunting you, and find a way out. Now you don't have to go alone.</p>
 <label for="playerName">PLAYER NAME</label><input id="playerName" maxlength="16" value="Explorer" autocomplete="nickname">
-<label for="serverUrl">MULTIPLAYER SERVER URL</label><input id="serverUrl" placeholder="Paste your Cloudflare Worker URL here" autocomplete="url">
+<label for="serverUrl">MULTIPLAYER SERVER URL</label><input id="serverUrl" placeholder="Automatically configured — edit only if needed" autocomplete="url">
 <div class="actions">
 <button id="solo">PLAY SOLO</button><button id="create">CREATE MULTIPLAYER ROOM</button>
 </div>
@@ -45,20 +45,21 @@ button:hover{background:#e6d77e}button:disabled{opacity:.5;cursor:wait}
 <div class="note">Multiplayer supports up to 4 explorers in one room. The multiplayer server must be deployed once before online rooms can be created.</div>
 </main>
 <script>
+const DEFAULT_WORKER_URL='https://backrooms.yahyamsalam2.workers.dev';
 const $=id=>document.getElementById(id),saved=localStorage.getItem('backroomsServer')||'';
-$('serverUrl').value=saved;
-function server(){return $('serverUrl').value.trim().replace(/\/$/,'')}
+$('serverUrl').value=saved||DEFAULT_WORKER_URL;
+function server(){return ($('serverUrl').value.trim()||DEFAULT_WORKER_URL).replace(/\/$/,'')}
 function status(s){$('status').textContent=s}
 function name(){return $('playerName').value.trim().slice(0,16)||'Explorer'}
 function launch(params){location.href='game/?'+new URLSearchParams(params).toString()}
 $('saveServer').onclick=()=>{if(!server()){status('Paste your deployed Worker URL first.');return}localStorage.setItem('backroomsServer',server());status('Server URL saved on this device.')}
 $('solo').onclick=()=>launch({mode:'solo'});
 $('create').onclick=async()=>{
- if(!server()){status('First deploy the multiplayer server and paste its URL above.');return}
+ if(!server()){status('Multiplayer server URL is missing.');return}
  $('create').disabled=true;status('Creating room…');
  try{const seed=Math.floor(Math.random()*0x7fffffff),r=await fetch(server()+'/api/rooms',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({seed})});const data=await r.json();if(!r.ok)throw new Error(data.error||'Room creation failed');localStorage.setItem('backroomsServer',server());launch({room:data.code,name:name(),seed:data.seed,host:'1'})}
  catch(e){status('Could not create room: '+e.message)}finally{$('create').disabled=false}
 };
-$('join').onclick=()=>{const code=$('roomCode').value.trim().toUpperCase();if(!/^[A-Z0-9]{6}$/.test(code)){status('Enter the 6-character room code.');return}if(!server()){status('Paste the multiplayer server URL first.');return}localStorage.setItem('backroomsServer',server());launch({room:code,name:name()})};
+$('join').onclick=()=>{const code=$('roomCode').value.trim().toUpperCase();if(!/^[A-Z0-9]{6}$/.test(code)){status('Enter the 6-character room code.');return}if(!server()){status('Multiplayer server URL is missing.');return}localStorage.setItem('backroomsServer',server());launch({room:code,name:name()})};
 $('roomCode').addEventListener('input',e=>e.target.value=e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6));
 </script></body></html>
