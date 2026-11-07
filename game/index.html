@@ -338,10 +338,17 @@ function updatePlayer(dt){const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math
  if(sprint)stamina=Math.max(0,stamina-8*dt);else stamina=Math.min(100,stamina+17*dt);$('stamina').style.width=stamina+'%';battery=Math.max(0,battery-(flashOn?.045:0)*dt);if(battery<=0&&flashOn){flashOn=false;flashlight.visible=false;showToast('FLASHLIGHT BATTERY EMPTY')}if(battery<100&&!flashOn)battery=Math.min(100,battery+.012*dt);$('battery').textContent=Math.round(battery)+'%';}
 let lastPathAt=0,cachedTarget=null;
 function pathTarget(actor){
- const now=performance.now();if(actor.cachedTarget&&now-actor.lastPathAt<900)return actor.cachedTarget;actor.lastPathAt=now;
- const sx=Math.round(actor.group.position.x/CELL),sz=Math.round(actor.group.position.z/CELL),tx=Math.round(camera.position.x/CELL),tz=Math.round(camera.position.z/CELL);
+ const now=performance.now();if(actor.cachedTarget&&now-actor.lastPathAt<250)return actor.cachedTarget;actor.lastPathAt=now;
+ const px=camera.position.x,pz=camera.position.z,ex=actor.group.position.x,ez=actor.group.position.z;
+ const dx=ex-px,dz=ez-pz,d=Math.hypot(dx,dz);
+ // Keep every Level 1 entity in a 20–30 foot band around the player.
+ // Aim for the middle of that band; hold position while already inside it.
+ if(d>=20&&d<=30){actor.cachedTarget=actor.group.position.clone();return actor.cachedTarget}
+ const inv=d>.001?1/d:0,ux=d>.001?dx*inv:1,uz=d>.001?dz*inv:0;
+ const desired=25,tx=Math.round((px+ux*desired)/CELL),tz=Math.round((pz+uz*desired)/CELL);
+ const sx=Math.round(ex/CELL),sz=Math.round(ez/CELL);
  const q=[[sx,sz]],seen=new Set([sx+","+sz]),prev=new Map();let end=null,head=0;
- while(head<q.length&&head<2200){const [x,z]=q[head++];if(x===tx&&z===tz){end=[x,z];break}for(const [nx,nz] of [[x+1,z],[x-1,z],[x,z+1],[x,z-1]]){const k=nx+","+nz;if(seen.has(k)||isWallCell(nx,nz))continue;seen.add(k);prev.set(k,[x,z]);q.push([nx,nz])}}
+ while(head<q.length&&head<2200){const [x,z]=q[head++];if(x===tx&&z===tz){end=[x,z];break}for(const [nx,nz] of [[x+1,z],[x-1,z],[x,nz+1],[x,nz-1]]){const k=nx+","+nz;if(seen.has(k)||isWallCell(nx,nz))continue;seen.add(k);prev.set(k,[x,z]);q.push([nx,nz])}}
  if(!end){actor.cachedTarget=cellCenter(tx,tz);return actor.cachedTarget}let cur=end;while(prev.has(cur[0]+","+cur[1])){const p=prev.get(cur[0]+","+cur[1]);if(p[0]===sx&&p[1]===sz)break;cur=p}actor.cachedTarget=cellCenter(cur[0],cur[1]);return actor.cachedTarget;
 }
 function updateEntity(actor,dt,t){
