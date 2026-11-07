@@ -21,7 +21,7 @@ function makeCode() {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-    if (request.method === "OPTIONS") return new Response(null, { headers: CORS });
+    if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
 
     if (url.pathname === "/api/rooms" && request.method === "POST") {
       let body = {};
