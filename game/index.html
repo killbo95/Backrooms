@@ -308,12 +308,12 @@ function playTone(freq=440,dur=.12,type='sine',vol=.06){if(!audio)return;const o
 function startGame(seedOverride){
  currentLevel=0;worldSeed=Number.isFinite(seedOverride)?seedOverride:((Math.random()*0x7fffffff)|0);buildWorld();audio=initAudio();
  lastFrameAt=0;running=true;paused=false;won=false;stamina=100;battery=100;found=0;flashOn=true;
- camera.position.copy(startPos);if(multiplayerSocket&&multiplayerId)camera.position.x=(window.multiplayerSlot-1.5)*1.3;yaw=0;pitch=0;entitySpeed=2.6;lastPathAt=0;cachedTarget=null;
+ camera.position.copy(startPos);if(multiplayerSocket&&multiplayerId)camera.position.x=(window.multiplayerSlot-1.5)*1.3;makeLocalAvatar();yaw=0;pitch=0;entitySpeed=2.6;lastPathAt=0;cachedTarget=null;
  flashlight.visible=true;pickups.forEach(p=>{p.taken=false;p.group.visible=true});
  $('objective').innerHTML='POWER CELLS <strong id="count">0 / 3</strong>';$('count').textContent='0 / 3';document.querySelector('.brand').textContent='KITSUNEST STUDIOS  /  FIELD RECORDING 001';$('overlay').style.display='none';$('hud').style.display='block';$('flash').style.opacity=0;
  clock.getDelta();animate();
 }
-function transitionLevel(level){currentLevel=level;found=0;worldSeed=(Math.random()*0x7fffffff)|0;startPos.set(0,1.65,0);buildWorld();camera.position.copy(startPos);camera.rotation.set(0,0,0);yaw=0;pitch=0;entitySpeed=2.6;lastPathAt=0;cachedTarget=null;stamina=100;battery=100;flashOn=true;flashlight.visible=true;$('objective').innerHTML=level===0?'POWER CELLS <strong id="count">0 / 3</strong>':'RETURN ROUTE <strong id="count">FIND ELEVATOR</strong>';document.querySelector('.brand').textContent=level===0?'KITSUNEST STUDIOS  /  FIELD RECORDING 001':'KITSUNEST STUDIOS  /  FIELD RECORDING 002';$('overlay').style.display='none';$('hud').style.display='block';$('flash').style.opacity=0;showToast(level===1?'LEVEL 1 — THE HABITAT':'RETURNED TO LEVEL 0');remotePlayers.forEach(p=>scene.add(p.group));sendNetwork({type:'progress',level:currentLevel,found});clock.getDelta();}
+function transitionLevel(level){currentLevel=level;found=0;worldSeed=(Math.random()*0x7fffffff)|0;startPos.set(0,1.65,0);buildWorld();camera.position.copy(startPos);camera.rotation.set(0,0,0);makeLocalAvatar();yaw=0;pitch=0;entitySpeed=2.6;lastPathAt=0;cachedTarget=null;stamina=100;battery=100;flashOn=true;flashlight.visible=true;$('objective').innerHTML=level===0?'POWER CELLS <strong id="count">0 / 3</strong>':'RETURN ROUTE <strong id="count">FIND ELEVATOR</strong>';document.querySelector('.brand').textContent=level===0?'KITSUNEST STUDIOS  /  FIELD RECORDING 001':'KITSUNEST STUDIOS  /  FIELD RECORDING 002';$('overlay').style.display='none';$('hud').style.display='block';$('flash').style.opacity=0;showToast(level===1?'LEVEL 1 — THE HABITAT':'RETURNED TO LEVEL 0');remotePlayers.forEach(p=>scene.add(p.group));sendNetwork({type:'progress',level:currentLevel,found});clock.getDelta();}
 function pauseGame(){if(!running)return;paused=true;running=false;document.exitPointerLock?.();$('intro').textContent='The corridors are still there. Whatever is following you has not stopped.';$('start').textContent='RETURN TO THE BACKROOMS';$('start').style.display='inline-block';$('overlay').style.display='flex';$('hud').style.display='none';}
 function endGame(win){running=false;won=win;document.exitPointerLock?.();$('hud').style.display='none';$('overlay').style.display='flex';$('intro').textContent=win?'The emergency door opens. Cold air. Real air. You made it out — for now.':'The corridors fall silent. You were not alone.';$('start').style.display='inline-block';$('start').textContent=win?'PLAY AGAIN':'TRY AGAIN';$('overlay').querySelector('.eyebrow').textContent=win?'EXIT FOUND':'SIGNAL LOST';$('overlay').querySelector('.title').innerHTML=win?'YOU<br><em>ESCAPED</em>':'LOST IN<br><em>LEVEL '+currentLevel+'</em>'}
 $('start').addEventListener('click',()=>{if(!running)startGame()});
@@ -328,6 +328,7 @@ function interact(){
  else{const p=cellCenter(window.elevatorCell[0],window.elevatorCell[1]);if(camera.position.distanceTo(new THREE.Vector3(p.x,1.6,p.z))<4.2){playTone(620,.25,'sine',.08);transitionLevel(0)}}
 }
 function updatePlayer(dt){const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw)),right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));moveVec.set(0,0,0);if(keys.KeyW||keys.ArrowUp)moveVec.add(forward);if(keys.KeyS||keys.ArrowDown)moveVec.sub(forward);if(keys.KeyD||keys.ArrowRight)moveVec.add(right);if(keys.KeyA||keys.ArrowLeft)moveVec.sub(right);const moving=moveVec.lengthSq()>0;const sprint=moving&&(keys.ShiftLeft||keys.ShiftRight)&&stamina>1;const speed=sprint?6.1:3.15;if(moving){moveVec.normalize().multiplyScalar(speed*dt);const next=camera.position.clone().add(moveVec);if(!collides(next))camera.position.x=next.x;if(!collides(new THREE.Vector3(camera.position.x,camera.position.y,next.z)))camera.position.z=next.z;if(performance.now()-lastStep>(sprint?270:440)){playTone(70+Math.random()*20,.035,'triangle',.012);lastStep=performance.now()}}
+ animateLocalAvatar(moving,sprint,dt);
  if(sprint)stamina=Math.max(0,stamina-8*dt);else stamina=Math.min(100,stamina+17*dt);$('stamina').style.width=stamina+'%';battery=Math.max(0,battery-(flashOn?.045:0)*dt);if(battery<=0&&flashOn){flashOn=false;flashlight.visible=false;showToast('FLASHLIGHT BATTERY EMPTY')}if(battery<100&&!flashOn)battery=Math.min(100,battery+.012*dt);$('battery').textContent=Math.round(battery)+'%';}
 let lastPathAt=0,cachedTarget=null;
 function pathTarget(actor){
@@ -349,9 +350,52 @@ function updateEntity(actor,dt,t){
 
 function sendNetwork(data){if(multiplayerSocket&&multiplayerSocket.readyState===WebSocket.OPEN)multiplayerSocket.send(JSON.stringify(data))}
 function applySharedProgress(n){found=Math.max(0,Math.min(3,n|0));const count=document.getElementById('count');if(count)count.textContent=found+' / 3';const cells=pickups.filter(p=>p.kind==='cell');cells.forEach((p,i)=>{p.taken=i<found;p.group.visible=!p.taken})}
-function makeRemotePlayer(id,name){if(remotePlayers.has(id))return remotePlayers.get(id);const group=new THREE.Group();const body=new THREE.Mesh(new THREE.CapsuleGeometry(.28,.8,4,7),new THREE.MeshStandardMaterial({color:0x72a6a0,roughness:.8}));body.position.y=1.05;group.add(body);const head=new THREE.Mesh(new THREE.SphereGeometry(.23,10,8),new THREE.MeshStandardMaterial({color:0xc7bda0,roughness:.9}));head.position.y=1.72;group.add(head);const marker=new THREE.Mesh(new THREE.BoxGeometry(.12,.12,.12),new THREE.MeshBasicMaterial({color:0xe5d98a}));marker.position.y=2.05;group.add(marker);if(scene)scene.add(group);const p={group,target:new THREE.Vector3(),yaw:0,name};remotePlayers.set(id,p);return p}
+function makeRemotePlayer(id,name){
+ if(remotePlayers.has(id))return remotePlayers.get(id);
+ const group=new THREE.Group();
+ const cloth=new THREE.MeshStandardMaterial({color:0x536d68,roughness:.92});
+ const dark=new THREE.MeshStandardMaterial({color:0x252d2b,roughness:1});
+ const skin=new THREE.MeshStandardMaterial({color:0xc7bda0,roughness:.9});
+ const torso=new THREE.Mesh(new THREE.BoxGeometry(.62,.78,.32),cloth);torso.position.y=1.18;group.add(torso);
+ const head=new THREE.Mesh(new THREE.SphereGeometry(.22,10,8),skin);head.position.y=1.78;group.add(head);
+ const neck=new THREE.Mesh(new THREE.CylinderGeometry(.09,.1,.14,7),skin);neck.position.y=1.62;group.add(neck);
+ const arms=[],legs=[];
+ for(const side of [-1,1]){
+  const arm=new THREE.Mesh(new THREE.CapsuleGeometry(.095,.48,3,6),cloth);arm.position.set(side*.39,1.17,0);arm.rotation.z=side*-.08;group.add(arm);arms.push(arm);
+  const leg=new THREE.Mesh(new THREE.CapsuleGeometry(.12,.52,3,6),dark);leg.position.set(side*.17,.48,0);group.add(leg);legs.push(leg);
+ }
+ const marker=new THREE.Mesh(new THREE.BoxGeometry(.12,.12,.12),new THREE.MeshBasicMaterial({color:0xe5d98a}));marker.position.y=2.08;group.add(marker);
+ if(scene)scene.add(group);
+ const p={group,target:new THREE.Vector3(),yaw:0,name,arms,legs,phase:0,lastX:0,lastZ:0};
+ remotePlayers.set(id,p);return p;
+}
+let localAvatar=null;
+function makeLocalAvatar(){
+ if(!multiplayerSocket||!camera)return;
+ if(localAvatar&&localAvatar.parent)localAvatar.parent.remove(localAvatar);
+ localAvatar=new THREE.Group();
+ const cloth=new THREE.MeshStandardMaterial({color:0x536d68,roughness:.95});
+ const dark=new THREE.MeshStandardMaterial({color:0x252d2b,roughness:1});
+ const skin=new THREE.MeshStandardMaterial({color:0xc7bda0,roughness:.9});
+ const torso=new THREE.Mesh(new THREE.BoxGeometry(.48,.72,.28),cloth);torso.position.set(0,-.48,-.22);localAvatar.add(torso);
+ const arms=[],legs=[];
+ for(const side of [-1,1]){
+  const arm=new THREE.Mesh(new THREE.CapsuleGeometry(.085,.42,3,6),cloth);arm.position.set(side*.34,-.48,-.34);arm.rotation.z=side*-.18;localAvatar.add(arm);arms.push(arm);
+  const leg=new THREE.Mesh(new THREE.CapsuleGeometry(.105,.48,3,6),dark);leg.position.set(side*.14,-1.12,-.12);localAvatar.add(leg);legs.push(leg);
+ }
+ camera.add(localAvatar);
+ runArms=arms;runLegs=legs;
+}
+function animateLocalAvatar(moving,sprinting,dt){
+ if(!localAvatar)return;
+ const blend=moving?1:0,rate=sprinting?12:8;
+ const phase=performance.now()*(sprinting?.012:.008);
+ runArms.forEach((limb,i)=>{limb.rotation.x=THREE.MathUtils.damp(limb.rotation.x,moving?Math.sin(phase+i*Math.PI)*.42:0,rate,dt)});
+ runLegs.forEach((limb,i)=>{limb.rotation.x=THREE.MathUtils.damp(limb.rotation.x,moving?Math.sin(phase+i*Math.PI)*.32:0,rate,dt)});
+ localAvatar.position.y=-.02+(moving?Math.abs(Math.sin(phase*2))*.018:0);
+}
 function connectMultiplayer(){const params=new URLSearchParams(location.search),room=params.get('room');if(!room)return false;multiplayerRoom=room;const base=localStorage.getItem('backroomsServer')||'';if(!base){showToast('MULTIPLAYER SERVER URL NOT SET');return false}const url=base.replace(/^http/,'ws').replace(/\/$/,'')+'/api/rooms/'+encodeURIComponent(room)+'?name='+encodeURIComponent(params.get('name')||'Explorer');$('netStatus').textContent='CONNECTING TO ROOM '+room;multiplayerSocket=new WebSocket(url);multiplayerSocket.onmessage=e=>{let data;try{data=JSON.parse(e.data)}catch{return}if(data.type==='welcome'){multiplayerId=data.id;window.multiplayerSlot=data.slot||0;startGame(data.seed);if(data.level===1)transitionLevel(1);applySharedProgress(data.found||0);(data.players||[]).forEach(p=>{if(p.id!==multiplayerId)makeRemotePlayer(p.id,p.name)});$('netStatus').textContent='ONLINE · ROOM '+room+' · '+data.players.length+'/4'}else if(data.type==='player-joined'){makeRemotePlayer(data.id,data.name);$('netStatus').textContent='ONLINE · ROOM '+room}else if(data.type==='player-left'){const p=remotePlayers.get(data.id);if(p){scene.remove(p.group);remotePlayers.delete(data.id)}}else if(data.type==='player-state'){const p=makeRemotePlayer(data.id,'Explorer');p.target.set(data.x,0,data.z);p.yaw=data.yaw||0}else if(data.type==='collected'){applySharedProgress(data.found)}else if(data.type==='progress'){if(data.level!==currentLevel)transitionLevel(data.level);applySharedProgress(data.found)}};multiplayerSocket.onclose=()=>{$('netStatus').textContent='DISCONNECTED · SOLO MODE';if(!running){$('intro').textContent='Could not connect to that room. Check the room code and Worker URL, or play solo.';$('start').textContent='PLAY SOLO INSTEAD';$('start').style.display='inline-block';$('overlay').style.display='flex'}};multiplayerSocket.onerror=()=>{$('netStatus').textContent='MULTIPLAYER CONNECTION FAILED';if(!running){$('intro').textContent='Could not connect to the multiplayer server. Check its URL and try again, or play solo.';$('start').textContent='PLAY SOLO INSTEAD';$('start').style.display='inline-block';$('overlay').style.display='flex'}};return true}
-function updateRemotePlayers(dt){remotePlayers.forEach(p=>{p.group.position.lerp(p.target,Math.min(1,dt*12));p.group.rotation.y=p.yaw})}
+function updateRemotePlayers(dt){remotePlayers.forEach(p=>{p.group.position.lerp(p.target,Math.min(1,dt*12));p.group.rotation.y=p.yaw;const dx=p.group.position.x-p.lastX,dz=p.group.position.z-p.lastZ,moving=Math.hypot(dx,dz)>.003;p.lastX=p.group.position.x;p.lastZ=p.group.position.z;if(moving)p.phase+=Math.hypot(dx,dz)*7;const swing=moving?Math.sin(p.phase)*.42:0;p.legs.forEach((limb,i)=>{limb.rotation.x=i===0?swing:-swing});p.arms.forEach((limb,i)=>{limb.rotation.x=i===0?-swing*.7:swing*.7})})}
 
 function updateWorld(t){pickups.forEach(p=>{if(!p.taken){if(p.kind==='cell'){p.group.rotation.y+=.012;p.group.position.y=1.05+Math.sin(t*2.2)*.12}else if(p.kind==='almond'){p.group.rotation.y+=.006;p.group.position.y=p.baseY+Math.sin(t*1.8)*.035}}});flashlight.intensity=flashOn?55:0}
 function animate(){if(!running)return;requestAnimationFrame(animate);const now=performance.now();if(now-lastFrameAt<1000/30)return;lastFrameAt=now;const dt=Math.min(clock.getDelta(),.05),t=clock.elapsedTime;updateChunks();updatePlayer(dt);levelEntities.forEach(actor=>updateEntity(actor,dt,t));updateWorld(t);updateRemotePlayers(dt);if(multiplayerSocket&&multiplayerSocket.readyState===WebSocket.OPEN&&now-lastNetSend>100){lastNetSend=now;sendNetwork({type:'state',x:camera.position.x,y:camera.position.y,z:camera.position.z,yaw,level:currentLevel})}renderer.render(scene,camera);if(currentLevel===0){if(found===3){const p=cellCenter(window.exitCell[0],window.exitCell[1]);message(camera.position.distanceTo(new THREE.Vector3(p.x,1.6,p.z))<3?'PRESS E TO ENTER LEVEL 1':'FIND THE GREEN EXIT')}else message('FIND THE POWER CELLS')}else{const p=cellCenter(window.elevatorCell[0],window.elevatorCell[1]);message(camera.position.distanceTo(new THREE.Vector3(p.x,1.6,p.z))<4.2?'PRESS E TO RETURN TO LEVEL 0':'FIND THE ELEVATOR — ABOUT 100 FEET FROM YOUR START')}}
