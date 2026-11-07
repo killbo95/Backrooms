@@ -241,8 +241,21 @@ function ensureChunk(cx,cz){
   const floorIndicator=new THREE.Mesh(new THREE.BoxGeometry(.55,.16,.08),lobbyLiftAmber);floorIndicator.position.set(0,3.35,-1.32);lobbyLift.add(floorIndicator);
   const buttonPanel=new THREE.Mesh(new THREE.BoxGeometry(.42,.82,.16),lobbyLiftSteel);buttonPanel.position.set(2.35,1.45,-1.42);lobbyLift.add(buttonPanel);
   const elevatorButton=new THREE.Mesh(new THREE.CircleGeometry(.12,16),lobbyLiftAmber);elevatorButton.position.set(2.35,1.58,-1.32);lobbyLift.add(elevatorButton);
+  // Complete enclosed elevator cabin: side walls, rear wall, ceiling, finished floor and handrails.
+  const cabinWall=new THREE.MeshStandardMaterial({color:0x555e5a,metalness:.58,roughness:.48}),cabinTrim=new THREE.MeshStandardMaterial({color:0xa0a69e,metalness:.82,roughness:.28}),cabinMirror=new THREE.MeshStandardMaterial({color:0x26302f,metalness:.72,roughness:.2});
+  const sideWallL=new THREE.Mesh(new THREE.BoxGeometry(.14,3.18,2.72),cabinWall);sideWallL.position.set(-1.69,1.62,.02);lobbyLift.add(sideWallL);
+  const sideWallR=new THREE.Mesh(new THREE.BoxGeometry(.14,3.18,2.72),cabinWall);sideWallR.position.set(1.69,1.62,.02);lobbyLift.add(sideWallR);
+  const rearWall=new THREE.Mesh(new THREE.BoxGeometry(3.42,3.18,.14),cabinWall);rearWall.position.set(0,1.62,1.36);lobbyLift.add(rearWall);
+  const cabinCeiling=new THREE.Mesh(new THREE.BoxGeometry(3.42,.14,2.72),cabinWall);cabinCeiling.position.set(0,3.18,.02);lobbyLift.add(cabinCeiling);
+  const rearMirror=new THREE.Mesh(new THREE.BoxGeometry(1.72,2.35,.025),cabinMirror);rearMirror.position.set(0,1.68,1.275);lobbyLift.add(rearMirror);
+  const rearTrim=new THREE.Mesh(new THREE.BoxGeometry(1.82,.055,.035),cabinTrim);rearTrim.position.set(0,2.88,1.24);lobbyLift.add(rearTrim);
+  const floorFinish=new THREE.Mesh(new THREE.BoxGeometry(3.38,.045,2.68),new THREE.MeshStandardMaterial({color:0x424a47,metalness:.52,roughness:.42}));floorFinish.position.set(0,.105,.02);lobbyLift.add(floorFinish);
+  for(const side of [-1,1]){const rail=new THREE.Mesh(new THREE.CylinderGeometry(.035,.035,2.15,10),cabinTrim);rail.rotation.z=Math.PI/2;rail.position.set(0,1.12,side*.0);rail.scale.z=1;rail.position.x=side*1.55;rail.rotation.set(0,0,Math.PI/2);rail.scale.set(1,1,1);lobbyLift.add(rail)}
+  const cabinPanel=new THREE.Mesh(new THREE.BoxGeometry(.12,.92,.48),lobbyLiftSteel);cabinPanel.position.set(1.59,1.48,-.35);lobbyLift.add(cabinPanel);
+  for(let i=0;i<3;i++){const b=new THREE.Mesh(new THREE.CircleGeometry(.075,16),i===0?lobbyLiftAmber:lobbyLiftDoorMat);b.rotation.y=Math.PI/2;b.position.set(1.515,1.76-i*.25,-.35);lobbyLift.add(b)}
+  const ceilingLight=new THREE.Mesh(new THREE.BoxGeometry(1.25,.035,.5),new THREE.MeshStandardMaterial({color:0xfff0c9,emissive:0xffd98a,emissiveIntensity:1.5}));ceilingLight.position.set(0,3.085,-.05);lobbyLift.add(ceilingLight);
   const liftFloor=new THREE.Mesh(new THREE.BoxGeometry(3.55,.12,2.6),lobbyLiftDark);liftFloor.position.set(0,.02,-.15);lobbyLift.add(liftFloor);
-  const liftLight=new THREE.PointLight(0xd5b477,2.8,12);liftLight.position.set(0,3.1,-.1);lobbyLift.add(liftLight);scene.add(lobbyLift);window.lobbyElevatorOpen=0;
+  const liftLight=new THREE.PointLight(0xd5b477,3.5,14);liftLight.position.set(0,2.9,-.1);lobbyLift.add(liftLight);scene.add(lobbyLift);window.lobbyElevatorOpen=0;
   // Stations use proximity prompts and E to interact.
   garageStations.push(
    {name:'E — EQUIP HAZMAT SUIT',x:-8,z:4,action:()=>{suitEquipped=true;updateGearStatus();showToast('HAZMAT SUIT EQUIPPED');playTone(520,.14,'triangle',.06)}},
