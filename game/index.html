@@ -14,7 +14,8 @@
 <div id="hud"><div class="top"><div class="brand">KITSUNEST STUDIOS&nbsp; / &nbsp;FIELD RECORDING 001</div><div class="objective" id="objective">POWER CELLS <strong id="count">0 / 3</strong></div></div><div class="crosshair"></div><div id="message"></div><div class="bottom"><div class="meter">STAMINA<div class="bar"><span id="stamina"></span></div><div style="margin-top:7px">FLASHLIGHT <span id="battery">100%</span></div></div><div class="hint">W A S D &nbsp; MOVE<br>SHIFT &nbsp; SPRINT &nbsp; / &nbsp; F &nbsp; LIGHT<br>E &nbsp; INTERACT &nbsp; / &nbsp; ESC &nbsp; PAUSE</div></div></div>
 <div id="toast"></div><div id="bodyCamStatus" style="display:none;position:fixed;z-index:8;top:78px;left:50%;transform:translateX(-50%);padding:8px 12px;background:#080a08bb;border:1px solid #d5c66b88;color:#e9dfb8;font-size:10px;letter-spacing:.16em;white-space:nowrap;pointer-events:none"></div><div id="flash"></div><div id="netStatus" style="position:fixed;z-index:8;top:52px;left:26px;font-size:10px;letter-spacing:.12em;color:#d5c66b;text-shadow:0 2px 8px #000;pointer-events:none"></div>
 <div id="touch"><button id="moveTouch">MOVE</button><button id="runTouch">RUN</button><button id="lookTouch">LOOK</button></div>
-<div id="lobbyUI"><div class="lobbyHead">BACKROOMS // FIELD STATION 01</div><div class="lobbyNote">EQUIPMENT BAY · PRE-ENTRY CHECK</div><div class="lobbyStatus" id="lobbyStatus">SUIT: NOT EQUIPPED<br>OXYGEN: NOT CONNECTED<br>FLASHLIGHT: NOT TAKEN</div><div class="lobbyControls"><button id="suitBtn">EQUIP HAZMAT SUIT</button><button id="oxygenBtn">CONNECT OXYGEN</button><button id="torchBtn">TAKE FLASHLIGHT</button><button id="lightBtn">LIGHTS: ON</button><button id="doorBtn">OPEN GARAGE DOOR</button><button id="lobbyStart" disabled>START EXPEDITION</button></div></div>\n<div id="overlay"><div class="panel"><div class="eyebrow">INITIALIZING ENVIRONMENT</div><h1 class="title">LOADING<br><em>LEVEL 0</em></h1><p class="desc" id="intro">Generating a new maze, restoring lights, and preparing the level…</p><button class="start" id="start" style="display:none">ENTER LEVEL 0&nbsp; →</button><div class="warning">PLEASE WAIT · DO NOT CLOSE THIS PAGE</div></div></div>
+<div id="lobbyUI"><div class="lobbyHead">BACKROOMS // FIELD STATION 01</div><div class="lobbyNote">EQUIPMENT BAY · PRE-ENTRY CHECK</div><div class="lobbyStatus" id="lobbyStatus">SUIT: NOT EQUIPPED<br>OXYGEN: NOT CONNECTED<br>FLASHLIGHT: NOT TAKEN</div><div class="lobbyControls"><button id="suitBtn">EQUIP HAZMAT SUIT</button><button id="oxygenBtn">CONNECT OXYGEN</button><button id="torchBtn">TAKE FLASHLIGHT</button><button id="lightBtn">LIGHTS: ON</button><button id="doorBtn">OPEN GARAGE DOOR</button><button id="lobbyStart" disabled>START EXPEDITION</button></div></div>
+<div id="overlay"><div class="panel"><div class="eyebrow">INITIALIZING ENVIRONMENT</div><h1 class="title">LOADING<br><em>LEVEL 0</em></h1><p class="desc" id="intro">Generating a new maze, restoring lights, and preparing the level…</p><button class="start" id="start" style="display:none">ENTER LEVEL 0&nbsp; →</button><div class="warning">PLEASE WAIT · DO NOT CLOSE THIS PAGE</div></div></div>
 
 <script type="module">
 import * as THREE from 'three';
@@ -22,7 +23,8 @@ const $=id=>document.getElementById(id);
 const host=$('game');
 let scene,camera,bodyCam,bodyCamLight,renderer,clock,player,flashlight,ambient,entity,entityLight;
 let runArms=[],runLegs=[];
-let running=false,paused=false,locked=false,stamina=100,battery=100,flashOn=true,found=0,won=false,currentLevel=0,levelEntities=[];\nlet lobbyActive=false,lobbySeed=null,lobbyJoinLevel=0,lobbyDoorOpen=false,lobbyLightsOn=true,lobbyGear={suit:false,oxygen:false,torch:false},lobbyDoor=null,lobbyLamp=null;
+let running=false,paused=false,locked=false,stamina=100,battery=100,flashOn=true,found=0,won=false,currentLevel=0,levelEntities=[];
+let lobbyActive=false,lobbySeed=null,lobbyJoinLevel=0,lobbyDoorOpen=false,lobbyLightsOn=true,lobbyGear={suit:false,oxygen:false,torch:false},lobbyDoor=null,lobbyLamp=null;
 const keys={},walls=[],pickups=[],lights=[],raycaster=new THREE.Raycaster();
 const CELL=8,HALF=4,CHUNK=15;
 const breachObstacles=[],breachByChunk=new Map();
@@ -348,7 +350,8 @@ $('torchBtn').addEventListener('click',()=>{lobbyGear.torch=!lobbyGear.torch;upd
 $('lightBtn').addEventListener('click',()=>{lobbyLightsOn=!lobbyLightsOn;if(lobbyLamp)lobbyLamp.visible=lobbyLightsOn;scene.children.forEach(o=>{if(o.isHemisphereLight)o.intensity=lobbyLightsOn?.8:.12});updateLobbyUI()});
 $('doorBtn').addEventListener('click',()=>{lobbyDoorOpen=!lobbyDoorOpen;updateLobbyUI()});
 $('lobbyStart').addEventListener('click',()=>{if($('lobbyStart').disabled)return;lobbyActive=false;$('lobbyUI').style.display='none';startGame(lobbySeed);if(lobbyJoinLevel===1){lobbyJoinLevel=0;transitionLevel(1)}});
-\nfunction startGame(seedOverride){
+
+function startGame(seedOverride){
  currentLevel=0;worldSeed=Number.isFinite(seedOverride)?seedOverride:((Math.random()*0x7fffffff)|0);buildWorld();audio=initAudio();
  lastFrameAt=0;running=true;paused=false;won=false;stamina=100;battery=100;found=0;flashOn=true;
  camera.position.copy(startPos);if(multiplayerSocket&&multiplayerId){const slot=Math.max(0,Number(window.multiplayerSlot)||0),count=Math.max(2,Math.min(20,Number(window.multiplayerMaxPlayers)||4)),angle=(slot/count)*Math.PI*2,radius=count<=4?.55:count<=8?.85:1.15;camera.position.x+=Math.cos(angle)*radius;camera.position.z+=Math.sin(angle)*radius}makeLocalAvatar();yaw=0;pitch=0;entitySpeed=2.6;lastPathAt=0;cachedTarget=null;
