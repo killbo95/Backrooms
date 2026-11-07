@@ -327,7 +327,7 @@ function interact(){
  if(currentLevel===0){const p=cellCenter(window.exitCell[0],window.exitCell[1]);if(camera.position.distanceTo(new THREE.Vector3(p.x,1.6,p.z))<3){if(found===3){playTone(880,.5,'sine',.1);transitionLevel(1)}else showToast('EXIT LOCKED — '+(3-found)+' POWER CELLS REMAIN')}}
  else{const p=cellCenter(window.elevatorCell[0],window.elevatorCell[1]);if(camera.position.distanceTo(new THREE.Vector3(p.x,1.6,p.z))<4.2){playTone(620,.25,'sine',.08);transitionLevel(0)}}
 }
-function updatePlayer(dt){const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw)),right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));moveVec.set(0,0,0);if(keys.KeyW||keys.ArrowUp)moveVec.add(forward);if(keys.KeyS||keys.ArrowDown)moveVec.sub(forward);if(keys.KeyD||keys.ArrowRight)moveVec.add(right);if(keys.KeyA||keys.ArrowLeft)moveVec.sub(right);const moving=moveVec.lengthSq()>0;const sprint=moving&&(keys.ShiftLeft||keys.ShiftRight)&&stamina>1;const speed=sprint?6.1:3.15;if(moving){moveVec.normalize().multiplyScalar(speed*dt);const next=camera.position.clone().add(moveVec);if(!collides(next))camera.position.x=next.x;if(!collides(new THREE.Vector3(camera.position.x,camera.position.y,next.z)))camera.position.z=next.z;if(performance.now()-lastStep>(sprint?270:440)){playTone(70+Math.random()*20,.035,'triangle',.012);lastStep=performance.now()}}
+function updatePlayer(dt){const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw)),right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));moveVec.set(0,0,0);if(keys.KeyW||keys.ArrowUp)moveVec.add(forward);if(keys.KeyS||keys.ArrowDown)moveVec.sub(forward);if(keys.KeyD||keys.ArrowRight)moveVec.add(right);if(keys.KeyA||keys.ArrowLeft)moveVec.sub(right);const moving=moveVec.lengthSq()>0;const sprint=moving&&(keys.ShiftLeft||keys.ShiftRight)&&stamina>1;const speed=sprint?7.4:4.2;if(moving){moveVec.normalize().multiplyScalar(speed*dt);const next=camera.position.clone().add(moveVec);if(!collides(next))camera.position.x=next.x;if(!collides(new THREE.Vector3(camera.position.x,camera.position.y,next.z)))camera.position.z=next.z;if(performance.now()-lastStep>(sprint?270:440)){playTone(70+Math.random()*20,.035,'triangle',.012);lastStep=performance.now()}}
  animateLocalAvatar(moving,sprint,dt);
  if(sprint)stamina=Math.max(0,stamina-8*dt);else stamina=Math.min(100,stamina+17*dt);$('stamina').style.width=stamina+'%';battery=Math.max(0,battery-(flashOn?.045:0)*dt);if(battery<=0&&flashOn){flashOn=false;flashlight.visible=false;showToast('FLASHLIGHT BATTERY EMPTY')}if(battery<100&&!flashOn)battery=Math.min(100,battery+.012*dt);$('battery').textContent=Math.round(battery)+'%';}
 let lastPathAt=0,cachedTarget=null;
@@ -371,20 +371,10 @@ function makeRemotePlayer(id,name){
 }
 let localAvatar=null;
 function makeLocalAvatar(){
- if(!multiplayerSocket||!camera)return;
+ // First-person view: do not attach a full body to the camera.
+ // Remote players still use makeRemotePlayer() and remain visible to everyone.
  if(localAvatar&&localAvatar.parent)localAvatar.parent.remove(localAvatar);
- localAvatar=new THREE.Group();
- const cloth=new THREE.MeshStandardMaterial({color:0x536d68,roughness:.95});
- const dark=new THREE.MeshStandardMaterial({color:0x252d2b,roughness:1});
- const skin=new THREE.MeshStandardMaterial({color:0xc7bda0,roughness:.9});
- const torso=new THREE.Mesh(new THREE.BoxGeometry(.48,.72,.28),cloth);torso.position.set(0,-.48,-.22);localAvatar.add(torso);
- const arms=[],legs=[];
- for(const side of [-1,1]){
-  const arm=new THREE.Mesh(new THREE.CapsuleGeometry(.085,.42,3,6),cloth);arm.position.set(side*.34,-.48,-.34);arm.rotation.z=side*-.18;localAvatar.add(arm);arms.push(arm);
-  const leg=new THREE.Mesh(new THREE.CapsuleGeometry(.105,.48,3,6),dark);leg.position.set(side*.14,-1.12,-.12);localAvatar.add(leg);legs.push(leg);
- }
- camera.add(localAvatar);
- runArms=arms;runLegs=legs;
+ localAvatar=null;runArms=[];runLegs=[];
 }
 function animateLocalAvatar(moving,sprinting,dt){
  if(!localAvatar)return;
