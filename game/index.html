@@ -378,10 +378,13 @@ function makeRemotePlayer(id,name){
  const harness=new THREE.Mesh(new THREE.BoxGeometry(.48,.12,.045),rubber);harness.position.set(0,1.43,.31);group.add(harness);
  const arms=[],legs=[];
  for(const side of [-1,1]){
-  const arm=new THREE.Mesh(new THREE.CapsuleGeometry(.105,.48,3,7),suit);arm.position.set(side*.39,1.17,0);arm.rotation.z=side*-.09;group.add(arm);arms.push(arm);
-  const glove=new THREE.Mesh(new THREE.SphereGeometry(.115,8,7),rubber);glove.position.set(side*.405,.82,-.005);group.add(glove);
-  const leg=new THREE.Mesh(new THREE.CapsuleGeometry(.13,.53,3,7),suit);leg.position.set(side*.17,.48,0);group.add(leg);legs.push(leg);
-  const boot=new THREE.Mesh(new THREE.BoxGeometry(.25,.16,.38),rubber);boot.position.set(side*.17,.12,-.045);group.add(boot);
+  // Pivot groups place the rotation at the shoulder and hip, not the limb centre.
+  const armPivot=new THREE.Group();armPivot.position.set(side*.39,1.43,0);group.add(armPivot);arms.push(armPivot);
+  const arm=new THREE.Mesh(new THREE.CapsuleGeometry(.105,.48,3,7),suit);arm.position.set(0,-.29,0);armPivot.add(arm);
+  const glove=new THREE.Mesh(new THREE.SphereGeometry(.115,8,7),rubber);glove.position.set(0,-.65,-.005);armPivot.add(glove);
+  const legPivot=new THREE.Group();legPivot.position.set(side*.17,.78,0);group.add(legPivot);legs.push(legPivot);
+  const leg=new THREE.Mesh(new THREE.CapsuleGeometry(.13,.53,3,7),suit);leg.position.set(0,-.34,0);legPivot.add(leg);
+  const boot=new THREE.Mesh(new THREE.BoxGeometry(.25,.16,.38),rubber);boot.position.set(0,-.69,-.045);legPivot.add(boot);
  }
  const belt=new THREE.Mesh(new THREE.CylinderGeometry(.325,.325,.09,12),rubber);belt.position.y=.83;group.add(belt);
  if(scene)scene.add(group);
@@ -411,14 +414,14 @@ function cycleBodyCam(){
  if(current===eligible.length-1){bodyCamTargetId=null;$('bodyCamStatus').style.display='none';showToast('RETURNED TO YOUR BODY CAM');return}
  const [id,p]=eligible[current+1];bodyCamTargetId=id;$('bodyCamStatus').textContent='BODY CAM  /  '+p.name.toUpperCase()+'  ·  PRESS C TO SWITCH';$('bodyCamStatus').style.display='block';showToast('VIEWING '+p.name.toUpperCase()+' BODY CAM');
 }
-function updateRemotePlayers(dt){remotePlayers.forEach(p=>{p.group.position.lerp(p.target,Math.min(1,dt*12));p.group.rotation.y=p.yaw;p.camPosition.lerp(p.camTarget,Math.min(1,dt*10));p.camYaw+=Math.atan2(Math.sin(p.yaw-p.camYaw),Math.cos(p.yaw-p.camYaw))*Math.min(1,dt*12);p.camPitch+=(p.pitch-p.camPitch)*Math.min(1,dt*12);const dx=p.group.position.x-p.lastX,dz=p.group.position.z-p.lastZ,distance=Math.hypot(dx,dz),moving=distance>.004;p.lastX=p.group.position.x;p.lastZ=p.group.position.z;
- const running=p.sprinting===true,rate=running?13:8,amplitude=running?.68:.38;
- if(moving)p.phase+=distance*(running?12:7.5);
+function updateRemotePlayers(dt){remotePlayers.forEach(p=>{p.group.position.lerp(p.target,Math.min(1,dt*12));p.group.rotation.y=p.yaw;p.camPosition.lerp(p.camTarget,Math.min(1,dt*10));p.camYaw+=Math.atan2(Math.sin(p.yaw-p.camYaw),Math.cos(p.yaw-p.camYaw))*Math.min(1,dt*12);p.camPitch+=(p.pitch-p.camPitch)*Math.min(1,dt*12);const dx=p.group.position.x-p.lastX,dz=p.group.position.z-p.lastZ,distance=Math.hypot(dx,dz),moving=distance>.0015;p.lastX=p.group.position.x;p.lastZ=p.group.position.z;
+ const running=p.sprinting===true,rate=running?16:12,amplitude=running?.9:.58;
+ if(moving)p.phase+=distance*(running?15:11);
  const swing=moving?Math.sin(p.phase)*amplitude:0;
  p.legs.forEach((limb,i)=>{limb.rotation.x=THREE.MathUtils.damp(limb.rotation.x,i===0?swing:-swing,rate,dt)});
- p.arms.forEach((limb,i)=>{limb.rotation.x=THREE.MathUtils.damp(limb.rotation.x,i===0?-swing*.82:swing*.82,rate,dt)});
- p.group.position.y=THREE.MathUtils.damp(p.group.position.y,moving?Math.abs(Math.sin(p.phase*2))*(running?.055:.025):0,10,dt);
- p.group.rotation.z=THREE.MathUtils.damp(p.group.rotation.z,moving&&running?Math.sin(p.phase)*.025:0,8,dt);})}
+ p.arms.forEach((limb,i)=>{limb.rotation.x=THREE.MathUtils.damp(limb.rotation.x,i===0?-swing*.8:swing*.8,rate,dt)});
+ p.group.position.y=THREE.MathUtils.damp(p.group.position.y,moving?Math.abs(Math.sin(p.phase*2))*(running?.075:.04):0,10,dt);
+ p.group.rotation.z=THREE.MathUtils.damp(p.group.rotation.z,moving&&running?Math.sin(p.phase)*.035:0,8,dt);})}
 
 function updateWorld(t){pickups.forEach(p=>{if(!p.taken){if(p.kind==='cell'){p.group.rotation.y+=.012;p.group.position.y=1.05+Math.sin(t*2.2)*.12}else if(p.kind==='almond'){p.group.rotation.y+=.006;p.group.position.y=p.baseY+Math.sin(t*1.8)*.035}}});flashlight.intensity=flashOn?55:0}
 function animate(){if(!running)return;requestAnimationFrame(animate);const now=performance.now();if(now-lastFrameAt<1000/30)return;lastFrameAt=now;const dt=Math.min(clock.getDelta(),.05),t=clock.elapsedTime;updateChunks();updatePlayer(dt);levelEntities.forEach(actor=>updateEntity(actor,dt,t));updateWorld(t);updateRemotePlayers(dt);if(multiplayerSocket&&multiplayerSocket.readyState===WebSocket.OPEN&&now-lastNetSend>100){lastNetSend=now;sendNetwork({type:'state',x:camera.position.x,y:camera.position.y,z:camera.position.z,yaw,pitch,level:currentLevel,flashOn,sprinting:localSprinting})}let renderCamera=camera;
