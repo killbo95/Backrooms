@@ -135,7 +135,7 @@ function ensureChunk(cx,cz){
   const lobbySurface=new THREE.MeshStandardMaterial({color:0x777e80,roughness:.98});
   const lobbyFloor=new THREE.Mesh(new THREE.PlaneGeometry(23.6,23.6),lobbySurface);lobbyFloor.rotation.x=-Math.PI/2;lobbyFloor.position.set(0,-.14,0);group.add(lobbyFloor);
   const lobbyCeiling=new THREE.Mesh(new THREE.PlaneGeometry(23.6,23.6),lobbySurface);lobbyCeiling.rotation.x=Math.PI/2;lobbyCeiling.position.set(0,4.275,0);group.add(lobbyCeiling);
-  ambient.color.set(0xb8bec0);ambient.groundColor.set(0x454a4c);ambient.intensity=.65;
+  ambient.color.set(0xd8dddf);ambient.groundColor.set(0x737a7c);ambient.intensity=1.15;
   // 24x24 room: concrete side/back walls and a clear central doorway.
   box(.16,4.25,24,-11.9,1.9,0,concrete);box(.16,4.25,24,11.9,1.9,0,concrete);
   box(24,4.25,.16,0,1.9,11.9,concrete);
@@ -164,12 +164,12 @@ function ensureChunk(cx,cz){
   // Workbench and hazmat suit display on the left.
   box(4,.16,1.2,-8,1.05,4,darkSteel);box(4,.1,1.2,-8,1.2,4,steel);
   const suit=new THREE.Group();
-  const suitMat=new THREE.MeshStandardMaterial({color:0xb6a956,roughness:.84}),visorMat=new THREE.MeshStandardMaterial({color:0x182323,metalness:.35,roughness:.2});
+  const suitMat=new THREE.MeshStandardMaterial({color:0xd0bd63,roughness:.82}),visorMat=new THREE.MeshStandardMaterial({color:0x101918,metalness:.42,roughness:.18});
   const torso=new THREE.Mesh(new THREE.CapsuleGeometry(.38,.72,4,8),suitMat);torso.position.y=1.9;suit.add(torso);
   const hood=new THREE.Mesh(new THREE.SphereGeometry(.34,10,8),suitMat);hood.position.y=2.72;suit.add(hood);
   const visor=new THREE.Mesh(new THREE.SphereGeometry(.23,10,8),visorMat);visor.scale.set(1,.65,.35);visor.position.set(0,2.72,-.27);suit.add(visor);
   const suitTank=new THREE.Mesh(new THREE.CylinderGeometry(.16,.18,.72,8),steel);suitTank.position.set(0,1.9,.4);suit.add(suitTank);
-  suit.position.set(-8,-1.15,-2);group.add(suit);
+  suit.position.set(-8,-1.15,-2);suit.scale.setScalar(1.12);group.add(suit);
   // Mannequin legs, boots and sleeves keep the displayed suit grounded on its rack.
   for(const side of [-1,1]){const leg=new THREE.Mesh(new THREE.CylinderGeometry(.13,.15,.48,8),suitMat);leg.position.set(side*.2,.94,0);suit.add(leg);const boot=new THREE.Mesh(new THREE.BoxGeometry(.3,.16,.48),darkSteel);boot.position.set(side*.2,1.2,-.08);suit.add(boot);const arm=new THREE.Mesh(new THREE.CylinderGeometry(.12,.14,.88,8),suitMat);arm.position.set(side*.49,1.92,0);arm.rotation.z=-side*.12;suit.add(arm);}
   // Oxygen cylinders and flashlight charging rack on the right.
@@ -182,12 +182,12 @@ function ensureChunk(cx,cz){
    {name:'E — EQUIP HAZMAT SUIT',x:-8,z:-2,action:()=>{suitEquipped=true;updateGearStatus();showToast('HAZMAT SUIT EQUIPPED');playTone(520,.14,'triangle',.06)}},
    {name:'E — CONNECT OXYGEN TANK',x:8,z:4,action:()=>{oxygenEquipped=true;updateGearStatus();stamina=100;$('stamina').style.width='100%';showToast('OXYGEN CONNECTED');playTone(620,.16,'sine',.06)}},
    {name:'E — TAKE FLASHLIGHT',x:8,z:-3,action:()=>{flashlightEquipped=true;updateGearStatus();battery=100;flashOn=true;flashlight.visible=true;$('battery').textContent='100%';showToast('FLASHLIGHT EQUIPPED');playTone(720,.16,'sine',.06)}},
-   {name:'E — TOGGLE GARAGE LIGHTS',x:5.4,z:-10.25,action:()=>{garageLightsOn=!garageLightsOn;if(garageMainLight)garageMainLight.intensity=garageLightsOn?7:0.08;if(garageLampMaterial)garageLampMaterial.emissiveIntensity=garageLightsOn?1.2:0.015;if(ambient)ambient.intensity=garageLightsOn?.65:.06;showToast(garageLightsOn?'GARAGE LIGHTS ON':'GARAGE LIGHTS OFF');playTone(garageLightsOn?620:180,.12,'sine',.05)}},
-   {name:'E — OPEN / CLOSE GARAGE DOOR',x:4.9,z:-10.25,action:()=>{if(!garageDoorTarget&&(!suitEquipped||!oxygenEquipped||!flashlightEquipped)){const missing=[!suitEquipped?'SUIT':null,!oxygenEquipped?'OXYGEN':null,!flashlightEquipped?'FLASHLIGHT':null].filter(Boolean).join(' · ');showToast('GEAR REQUIRED: '+missing);playTone(160,.2,'square',.035);return}garageDoorTarget=garageDoorTarget>.5?0:1;if(garageDoorTarget){$('objective').innerHTML='MISSION <strong>POWER CELLS <span id="count">0 / 3</span></strong>';if(ambient){ambient.color.set(0xd8c98a);ambient.groundColor.set(0x302b1b);ambient.intensity=.82}}else{updateGearStatus();if(ambient){ambient.color.set(0xb8bec0);ambient.groundColor.set(0x454a4c);ambient.intensity=garageLightsOn?.65:.06}}showToast(garageDoorTarget?'GARAGE DOOR OPENING':'GARAGE DOOR CLOSING');playTone(garageDoorTarget?260:190,.25,'sawtooth',.045)}}
+   {name:'E — TOGGLE GARAGE LIGHTS',x:5.4,z:-10.25,action:()=>{garageLightsOn=!garageLightsOn;if(garageMainLight)garageMainLight.intensity=garageLightsOn?16:0.12;if(garageLampMaterial)garageLampMaterial.emissiveIntensity=garageLightsOn?1.8:0.02;if(ambient)ambient.intensity=garageLightsOn?1.15:.12;showToast(garageLightsOn?'GARAGE LIGHTS ON':'GARAGE LIGHTS OFF');playTone(garageLightsOn?620:180,.12,'sine',.05)}},
+   {name:'E — OPEN / CLOSE GARAGE DOOR',x:4.9,z:-10.25,action:()=>{if(!garageDoorTarget&&(!suitEquipped||!oxygenEquipped||!flashlightEquipped)){const missing=[!suitEquipped?'SUIT':null,!oxygenEquipped?'OXYGEN':null,!flashlightEquipped?'FLASHLIGHT':null].filter(Boolean).join(' · ');showToast('GEAR REQUIRED: '+missing);playTone(160,.2,'square',.035);return}garageDoorTarget=garageDoorTarget>.5?0:1;if(garageDoorTarget){$('objective').innerHTML='MISSION <strong>POWER CELLS <span id="count">0 / 3</span></strong>';if(ambient){ambient.color.set(0xd8c98a);ambient.groundColor.set(0x302b1b);ambient.intensity=.82}}else{updateGearStatus();if(ambient){ambient.color.set(0xd8dddf);ambient.groundColor.set(0x737a7c);ambient.intensity=garageLightsOn?1.15:.12}}showToast(garageDoorTarget?'GARAGE DOOR OPENING':'GARAGE DOOR CLOSING');playTone(garageDoorTarget?260:190,.25,'sawtooth',.045)}}
   );
-  const lampMat=new THREE.MeshStandardMaterial({color:0xe4e1cf,emissive:0xcfc8a7,emissiveIntensity:1.2});garageLampMaterial=lampMat;
+  const lampMat=new THREE.MeshStandardMaterial({color:0xf5f1df,emissive:0xffedc2,emissiveIntensity:1.8});garageLampMaterial=lampMat;
   for(const x of [-7,0,7]){box(2.6,.08,.8,x,4.0,0,darkSteel);box(2.35,.04,.65,x,3.93,0,lampMat)}
-  garageMainLight=new THREE.PointLight(0xd9d5bd,7,24);garageMainLight.position.set(0,3.5,0);group.add(garageMainLight);
+  garageMainLight=new THREE.PointLight(0xe8e5d8,16,34);garageMainLight.position.set(0,3.5,0);group.add(garageMainLight);
  }
  const rnd=randomFor(cx+7919,cz-104729);
  // Scavengeable supplies: almond water restores flashlight charge; cookies restore stamina.
@@ -378,8 +378,8 @@ let audio=null;
 function playTone(freq=440,dur=.12,type='sine',vol=.06){if(!audio)return;const o=audio.ctx.createOscillator(),g=audio.ctx.createGain();o.type=type;o.frequency.value=freq;g.gain.setValueAtTime(vol,audio.ctx.currentTime);g.gain.exponentialRampToValueAtTime(.001,audio.ctx.currentTime+dur);o.connect(g);g.connect(audio.ctx.destination);o.start();o.stop(audio.ctx.currentTime+dur)}
 function updateGearStatus(){const check=(v,label)=>label+': '+(v?'READY':'MISSING');$('objective').innerHTML='PREP CHECK <strong>'+[check(suitEquipped,'SUIT'),check(oxygenEquipped,'O₂'),check(flashlightEquipped,'LIGHT')].join(' · ')+'</strong><span id="count" style="display:none">0 / 3</span>'}
 function startGame(seedOverride){
- currentLevel=0;worldSeed=Number.isFinite(seedOverride)?seedOverride:((Math.random()*0x7fffffff)|0);buildWorld();audio=initAudio();
- lastFrameAt=0;running=true;paused=false;won=false;stamina=100;battery=100;found=0;flashOn=false;suitEquipped=false;oxygenEquipped=false;flashlightEquipped=false;garageLightsOn=true;garageDoorOpen=0;garageDoorTarget=0;
+ currentLevel=0;stamina=100;battery=100;found=0;flashOn=false;suitEquipped=false;oxygenEquipped=false;flashlightEquipped=false;garageLightsOn=true;garageDoorOpen=0;garageDoorTarget=0;worldSeed=Number.isFinite(seedOverride)?seedOverride:((Math.random()*0x7fffffff)|0);buildWorld();audio=initAudio();
+ lastFrameAt=0;running=true;paused=false;won=false;
  camera.position.copy(startPos);if(multiplayerSocket&&multiplayerId){const slot=Math.max(0,Number(window.multiplayerSlot)||0),count=Math.max(2,Math.min(20,Number(window.multiplayerMaxPlayers)||4)),angle=(slot/count)*Math.PI*2,radius=count<=4?.55:count<=8?.85:1.15;camera.position.x+=Math.cos(angle)*radius;camera.position.z+=Math.sin(angle)*radius}makeLocalAvatar();yaw=0;pitch=0;entitySpeed=2.6;lastPathAt=0;cachedTarget=null;
  flashlight.visible=false;pickups.forEach(p=>{p.taken=false;p.group.visible=true});
  updateGearStatus();$('count').textContent='0 / 3';document.querySelector('.brand').textContent='KITSUNEST STUDIOS  /  FIELD RECORDING 001';$('overlay').style.display='none';$('hud').style.display='block';$('flash').style.opacity=0;
@@ -530,7 +530,7 @@ function animate(){if(!running)return;requestAnimationFrame(animate);const now=p
    renderCamera=bodyCam;
   }else{bodyCamTargetId=null;$('bodyCamStatus').style.display='none';bodyCamLight.visible=false;flashlight.visible=flashOn;if(observerAvatar)observerAvatar.visible=false}
  }else{bodyCamLight.visible=false;flashlight.visible=flashOn;if(observerAvatar)observerAvatar.visible=false}
- renderer.render(scene,renderCamera);if(currentLevel===0&&camera.position.z< -14){if(found===3){const p=cellCenter(window.exitCell[0],window.exitCell[1]);message(camera.position.distanceTo(new THREE.Vector3(p.x,1.6,p.z))<3?'PRESS E TO ENTER LEVEL 1':'FIND THE GREEN EXIT')}else message('FIND THE POWER CELLS')}else if(currentLevel===0&&!nearbyStation)message('PREPARE YOUR GEAR · OPEN THE GARAGE DOOR');else{const p=cellCenter(window.elevatorCell[0],window.elevatorCell[1]);message(camera.position.distanceTo(new THREE.Vector3(p.x,1.6,p.z))<4.2?'PRESS E TO RETURN TO LEVEL 0':'FIND THE ELEVATOR — ABOUT 100 FEET FROM YOUR START')}}
+ renderer.render(scene,renderCamera);if(currentLevel===0&&camera.position.z< -14){if(found===3){const p=cellCenter(window.exitCell[0],window.exitCell[1]);message(camera.position.distanceTo(new THREE.Vector3(p.x,1.6,p.z))<3?'PRESS E TO ENTER LEVEL 1':'FIND THE GREEN EXIT')}else message('FIND THE POWER CELLS')}else if(currentLevel===0&&!nearbyStation)message(suitEquipped&&oxygenEquipped&&flashlightEquipped?'OPEN THE GARAGE DOOR':'PREPARE YOUR GEAR · EQUIP ALL 3 ITEMS');else{const p=cellCenter(window.elevatorCell[0],window.elevatorCell[1]);message(camera.position.distanceTo(new THREE.Vector3(p.x,1.6,p.z))<4.2?'PRESS E TO RETURN TO LEVEL 0':'FIND THE ELEVATOR — ABOUT 100 FEET FROM YOUR START')}}
 window.addEventListener('resize',()=>{if(!camera||!renderer)return;camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();if(bodyCam){bodyCam.aspect=innerWidth/innerHeight;bodyCam.updateProjectionMatrix()}renderer.setSize(innerWidth,innerHeight)});
 let touchStart=null;
 $('moveTouch').addEventListener('pointerdown',e=>{touchStart={x:e.clientX,y:e.clientY};$('moveTouch').setPointerCapture(e.pointerId)});$('moveTouch').addEventListener('pointermove',e=>{if(!touchStart)return;const dx=e.clientX-touchStart.x,dy=e.clientY-touchStart.y;keys.KeyW=dy<-8;keys.KeyS=dy>8;keys.KeyA=dx<-8;keys.KeyD=dx>8});$('moveTouch').addEventListener('pointerup',()=>{touchStart=null;keys.KeyW=keys.KeyS=keys.KeyA=keys.KeyD=false});
