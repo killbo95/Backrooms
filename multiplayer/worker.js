@@ -125,7 +125,8 @@ export class BackroomsRoom {
           yaw: Number(data.yaw) || 0,
           pitch: Math.max(-1.35, Math.min(1.35, Number(data.pitch) || 0)),
           level: Number(data.level) === 1 ? 1 : 0,
-          flashOn: data.flashOn !== false
+          flashOn: data.flashOn !== false,
+          sprinting: data.sprinting === true
         };
         this.broadcast(state, playerId);
       } else if (data.type === "progress") {
