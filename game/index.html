@@ -317,7 +317,7 @@ function buildWorld(){
  for(const x of [-.065,.065]){const eye=new THREE.Mesh(new THREE.SphereGeometry(.018,6,5),eyeMat);eye.position.set(x,3.08,-.16);entity.add(eye)}
  entityLight=new THREE.PointLight(0x8d7a3e,.6,3);entityLight.position.y=2.1;entity.add(entityLight);scene.add(entity);
 }
-let yaw=0,pitch=0,entitySpeed=1.55,lastStep=0,moveVec=new THREE.Vector3();
+let yaw=0,pitch=0,entitySpeed=1.55,lastStep=0,moveVec=new THREE.Vector3(),entityRunPhase=0,entityRunBlend=0;
 function showToast(s){$('toast').textContent=s;$('toast').style.opacity=1;clearTimeout(showToast.t);showToast.t=setTimeout(()=>$('toast').style.opacity=0,2100)}
 function message(s){$('message').textContent=s;$('message').style.opacity=s?1:0}
 function initAudio(){try{const C=window.AudioContext||window.webkitAudioContext;const ctx=new C();const osc=ctx.createOscillator(),gain=ctx.createGain(),filter=ctx.createBiquadFilter();osc.type='sawtooth';osc.frequency.value=58;filter.type='lowpass';filter.frequency.value=180;gain.gain.value=.018;osc.connect(filter);filter.connect(gain);gain.connect(ctx.destination);osc.start();return {ctx,osc,gain}}catch(e){return null}}
@@ -364,20 +364,25 @@ function updateEntity(dt,t){
  const d=Math.hypot(camera.position.x-entity.position.x,camera.position.z-entity.position.z);
  const moving=toPlayer.length()>.45;
  const speed=entitySpeed+(found*.22)+(d<12?.65:0);
+ let travelled=0;
  if(moving){
   toPlayer.normalize();
   const next=entity.position.clone().addScaledVector(toPlayer,speed*dt);
-  if(!collides(next,.48))entity.position.copy(next);
-  // The creature's face and chest point along local -Z, so rotate that
-  // forward axis toward the direction of travel (not away from it).
+  if(!collides(next,.48)){
+   travelled=entity.position.distanceTo(next);
+   entity.position.copy(next);
+  }
+  // The creature's face and chest point along local -Z.
   entity.rotation.y=Math.atan2(-toPlayer.x,-toPlayer.z);
  }
- // Fast alternating arm and leg swings, with a small vertical running bounce.
- const stride=moving?Math.sin(t*10.5):0;
- const settle=moving?Math.abs(Math.cos(t*10.5))*.045:0;
- runArms.forEach((arm,i)=>{arm.rotation.z=stride*(i===0?-.62:.62);arm.rotation.x=Math.cos(t*10.5)*(i===0?.12:-.12)});
- runLegs.forEach((leg,i)=>{leg.rotation.z=stride*(i===0?.72:-.72);leg.rotation.x=Math.cos(t*10.5)*(i===0?-.1:.1)});
- entity.children[0].position.y=2.05+settle;
+ // Drive the gait from actual distance moved: speed changes step frequency.
+ entityRunPhase+=travelled*5.5;
+ entityRunBlend=THREE.MathUtils.damp(entityRunBlend,travelled>0?1:0,10,dt);
+ const stride=Math.sin(entityRunPhase)*entityRunBlend;
+ const lift=Math.max(0,Math.cos(entityRunPhase))*entityRunBlend;
+ runArms.forEach((arm,i)=>{arm.rotation.z=stride*(i===0?-.62:.62);arm.rotation.x=lift*(i===0?.12:-.12)});
+ runLegs.forEach((leg,i)=>{leg.rotation.z=stride*(i===0?.72:-.72);leg.rotation.x=lift*(i===0?-.1:.1)});
+ entity.children[0].position.y=2.05+lift*.045;
  entityLight.intensity=.35+Math.sin(t*7)*.12;
  if(d<1.45){$('flash').style.opacity=.65;setTimeout(()=>$('flash').style.opacity=0,100);endGame(false)}
  if(d<18&&Math.random()<.006)playTone(95+Math.random()*35,.3,'sawtooth',.018);
