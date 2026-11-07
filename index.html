@@ -1,49 +1,64 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#090a08">
-<title>THE BACKROOMS — Enter Level 0</title>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#090a08"><title>THE BACKROOMS — Enter Level 0</title>
 <style>
-:root{--yellow:#d5c66b;--paper:#e9e2bd}
-*{box-sizing:border-box}
+:root{--yellow:#d5c66b;--paper:#e9e2bd}*{box-sizing:border-box}
 html,body{margin:0;min-height:100%;background:#090a08;color:var(--paper);font-family:Arial,Helvetica,sans-serif}
-body{min-height:100vh;display:grid;place-items:center;padding:24px;overflow:hidden;background:radial-gradient(ellipse at 72% 38%,#726a37 0%,#262719 38%,#090a08 78%)}
-.panel{width:min(600px,100%);padding:clamp(28px,6vw,58px);border-left:2px solid #c7b85f;background:rgba(7,8,6,.78);box-shadow:0 20px 100px #0008}
+body{min-height:100vh;display:grid;place-items:center;padding:24px;overflow:auto;background:radial-gradient(ellipse at 72% 38%,#726a37 0%,#262719 38%,#090a08 78%)}
+.panel{width:min(620px,100%);padding:clamp(25px,5vw,54px);border-left:2px solid #c7b85f;background:rgba(7,8,6,.84);box-shadow:0 20px 100px #0008}
 .eyebrow{font-size:10px;letter-spacing:.34em;color:#c9bb6d;margin-bottom:22px}
-h1{font-family:Georgia,serif;font-size:clamp(48px,10vw,88px);line-height:.88;letter-spacing:-.055em;color:#e7dfb8;margin:0 0 24px;font-weight:400}
-h1 em{font-style:normal;color:#b9a94f}
-p{max-width:420px;color:#aaa78f;font-size:14px;line-height:1.8;margin:0 0 30px}
-button{border:1px solid #c6b85e;background:#c6b85e;color:#14140d;padding:15px 26px;font-weight:bold;font-size:11px;letter-spacing:.2em;cursor:pointer;transition:.2s}
-button:hover{background:#e6d77e;transform:translateY(-2px)}
-.controls{margin-top:27px;padding-top:19px;border-top:1px solid #ffffff1c;display:grid;grid-template-columns:1fr 1fr;gap:12px;color:#9e9b85;font-size:11px;letter-spacing:.08em;line-height:1.6}
-.controls b{color:#ded7b3}
-.warning{font-size:10px;color:#7f7d6c;margin-top:20px;letter-spacing:.08em}
-#loading{display:none;color:#d5c66b;font-size:11px;letter-spacing:.2em;margin-top:20px}
-</style>
-</head>
-<body>
-<main class="panel">
+h1{font-family:Georgia,serif;font-size:clamp(48px,10vw,84px);line-height:.88;letter-spacing:-.055em;color:#e7dfb8;margin:0 0 22px;font-weight:400}h1 em{font-style:normal;color:#b9a94f}
+p{max-width:440px;color:#aaa78f;font-size:13px;line-height:1.8;margin:0 0 22px}
+label{display:block;font-size:10px;letter-spacing:.16em;color:#bcb69b;margin:14px 0 7px}
+input{width:100%;background:#11130f;border:1px solid #625b37;color:#eee7c9;padding:12px;font-size:14px;outline:none}
+input:focus{border-color:#d5c66b}
+button{border:1px solid #c6b85e;background:#c6b85e;color:#14140d;padding:13px 17px;font-weight:bold;font-size:10px;letter-spacing:.15em;cursor:pointer}
+button:hover{background:#e6d77e}button:disabled{opacity:.5;cursor:wait}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.secondary{background:transparent;color:#e8dfb8;border-color:#8c8250}
+.divider{height:1px;background:#ffffff1c;margin:22px 0}
+.controls{display:grid;grid-template-columns:1fr 1fr;gap:10px;color:#9e9b85;font-size:10px;letter-spacing:.08em;line-height:1.6}.controls b{color:#ded7b3}
+.note{font-size:10px;color:#8c896f;margin-top:18px;line-height:1.6}
+#status{font-size:11px;letter-spacing:.08em;color:#d5c66b;min-height:18px;margin-top:14px}
+@media(max-width:480px){.actions{grid-template-columns:1fr}.controls{grid-template-columns:1fr 1fr}}
+</style></head>
+<body><main class="panel">
 <div class="eyebrow">AN UNAUTHORIZED PLACE</div>
 <h1>THE<br><em>BACKROOMS</em></h1>
-<p>You have slipped out of reality. The lights hum overhead. Somewhere in this place, something has heard you arrive. Find three power cells and reach the exit.</p>
-<button id="enter">ENTER LEVEL 0&nbsp; →</button>
-<div id="loading">LOADING LEVEL 0…</div>
+<p>You have slipped out of reality. The lights hum overhead. Find three power cells, avoid what is hunting you, and find a way out. Now you don't have to go alone.</p>
+<label for="playerName">PLAYER NAME</label><input id="playerName" maxlength="16" value="Explorer" autocomplete="nickname">
+<label for="serverUrl">MULTIPLAYER SERVER URL</label><input id="serverUrl" placeholder="Paste your Cloudflare Worker URL here" autocomplete="url">
+<div class="actions">
+<button id="solo">PLAY SOLO</button><button id="create">CREATE MULTIPLAYER ROOM</button>
+</div>
+<label for="roomCode">JOIN A FRIEND'S ROOM</label><input id="roomCode" maxlength="6" placeholder="6-CHARACTER ROOM CODE" style="text-transform:uppercase">
+<div class="actions"><button class="secondary" id="join">JOIN ROOM</button><button class="secondary" id="saveServer">SAVE SERVER URL</button></div>
+<div id="status"></div>
+<div class="divider"></div>
 <div class="controls">
 <div><b>W A S D</b> &nbsp; Move</div><div><b>MOUSE</b> &nbsp; Look around</div>
 <div><b>SHIFT</b> &nbsp; Sprint</div><div><b>F</b> &nbsp; Flashlight</div>
 <div><b>E</b> &nbsp; Interact</div><div><b>ESC</b> &nbsp; Pause</div>
 </div>
-<div class="warning">HEADPHONES RECOMMENDED · KEEP MOVING · DO NOT TRUST THE HUM</div>
+<div class="note">Multiplayer supports up to 4 explorers in one room. The multiplayer server must be deployed once before online rooms can be created.</div>
 </main>
 <script>
-document.getElementById('enter').addEventListener('click',function(){
-  this.disabled=true;
-  this.textContent='LOADING…';
-  document.getElementById('loading').style.display='block';
-  window.location.href='game/';
-});
-</script>
-</body>
-</html>
+const $=id=>document.getElementById(id),saved=localStorage.getItem('backroomsServer')||'';
+$('serverUrl').value=saved;
+function server(){return $('serverUrl').value.trim().replace(/\/$/,'')}
+function status(s){$('status').textContent=s}
+function name(){return $('playerName').value.trim().slice(0,16)||'Explorer'}
+function launch(params){location.href='game/?'+new URLSearchParams(params).toString()}
+$('saveServer').onclick=()=>{if(!server()){status('Paste your deployed Worker URL first.');return}localStorage.setItem('backroomsServer',server());status('Server URL saved on this device.')}
+$('solo').onclick=()=>launch({mode:'solo'});
+$('create').onclick=async()=>{
+ if(!server()){status('First deploy the multiplayer server and paste its URL above.');return}
+ $('create').disabled=true;status('Creating room…');
+ try{const seed=Math.floor(Math.random()*0x7fffffff),r=await fetch(server()+'/api/rooms',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({seed})});const data=await r.json();if(!r.ok)throw new Error(data.error||'Room creation failed');localStorage.setItem('backroomsServer',server());launch({room:data.code,name:name(),seed:data.seed,host:'1'})}
+ catch(e){status('Could not create room: '+e.message)}finally{$('create').disabled=false}
+};
+$('join').onclick=()=>{const code=$('roomCode').value.trim().toUpperCase();if(!/^[A-Z0-9]{6}$/.test(code)){status('Enter the 6-character room code.');return}if(!server()){status('Paste the multiplayer server URL first.');return}localStorage.setItem('backroomsServer',server());launch({room:code,name:name()})};
+$('roomCode').addEventListener('input',e=>e.target.value=e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6));
+</script></body></html>
