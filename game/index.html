@@ -53,6 +53,12 @@ function makeChunkMap(cx,cz){
   }
   if(!moved)stack.pop();
  }
+ // Add occasional cross-passages to the DFS maze. This creates loops so routes
+ // don't collapse into a chain of isolated dead ends.
+ for(let z=0;z<7;z++)for(let x=0;x<7;x++){
+  if(x<6&&rnd()<.16)map[1+z*2][2+x*2]=false;
+  if(z<6&&rnd()<.16)map[2+z*2][1+x*2]=false;
+ }
  // Every chunk has four aligned portals, connecting it to its neighbours.
  map[7][0]=false;map[7][14]=false;map[0][7]=false;map[14][7]=false;
  // Reserve the centre of Level 0 for a permanent garage built into the maze.
@@ -272,7 +278,32 @@ function ensureChunk(cx,cz){
 }
 let objectiveRng=()=>Math.random();
 function randomOpenCell(minDist,maxDist){
- for(let tries=0;tries<12000;tries++){const a=objectiveRng()*Math.PI*2,d=minDist+objectiveRng()*(maxDist-minDist),x=Math.round(Math.cos(a)*d),z=Math.round(Math.sin(a)*d);if(!isWallCell(x,z))return [x,z]}
+ // Place objectives/exits in connected corridors or junctions, never in a
+ // one-way dead-end pocket. The extra maze loops provide alternate routes.
+ for(let tries=0;tries<24000;tries++){
+  const a=objectiveRng()*Math.PI*2,d=minDist+objectiveRng()*(maxDist-minDist);
+  const x=Math.round(Math.cos(a)*d),z=Math.round(Math.sin(a)*d);
+  if(isWallCell(x,z))continue;
+  let exits=0;
+  if(!isWallCell(x+1,z))exits++;
+  if(!isWallCell(x-1,z))exits++;
+  if(!isWallCell(x,z+1))exits++;
+  if(!isWallCell(x,z-1))exits++;
+  if(exits>=2)return [x,z];
+ }
+ // Deterministic safe fallback: search nearby open cells with at least two exits.
+ for(let radius=Math.ceil(minDist);radius<=Math.ceil(maxDist)+8;radius++){
+  for(let z=-radius;z<=radius;z++)for(let x=-radius;x<=radius;x++){
+   if(Math.abs(x)!==radius&&Math.abs(z)!==radius)continue;
+   if(isWallCell(x,z))continue;
+   let exits=0;
+   if(!isWallCell(x+1,z))exits++;
+   if(!isWallCell(x-1,z))exits++;
+   if(!isWallCell(x,z+1))exits++;
+   if(!isWallCell(x,z-1))exits++;
+   if(exits>=2)return [x,z];
+  }
+ }
  return [Math.round(minDist),0];
 }
 let wallpaperMaterial=null;
