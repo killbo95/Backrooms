@@ -244,18 +244,55 @@ function buildWorld(){
  const doorMat=new THREE.MeshStandardMaterial({color:0x163d27,emissive:0x1aff75,emissiveIntensity:.8});
  const door=new THREE.Mesh(new THREE.BoxGeometry(1.8,2.8,.16),doorMat);door.position.set(0,1.45,-3.5);exitGroup.add(door);
  const exitLamp=new THREE.PointLight(0x39ff83,5,12);exitLamp.position.set(0,2.7,-3.2);exitGroup.add(exitLamp);scene.add(exitGroup);
- // Temporary monster showcase: spawn it directly ahead of the player.
+ // Temporary monster showcase: spawn the entity directly ahead of the player.
  const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw));
  entity=new THREE.Group();
  entity.position.copy(camera.position).addScaledVector(forward,10);
  entity.position.y=0;
  const towardPlayer=new THREE.Vector3(camera.position.x-entity.position.x,0,camera.position.z-entity.position.z);
  entity.rotation.y=Math.atan2(-towardPlayer.x,-towardPlayer.z);
- const dark=new THREE.MeshStandardMaterial({color:0x090a08,roughness:.95});
- const body=new THREE.Mesh(new THREE.CapsuleGeometry(.42,.9,4,8),dark);body.position.y=1.1;entity.add(body);
- const head=new THREE.Mesh(new THREE.SphereGeometry(.32,12,10),dark);head.position.y=2;entity.add(head);
- const eyes=new THREE.Mesh(new THREE.BoxGeometry(.25,.045,.035),new THREE.MeshBasicMaterial({color:0xd7c67b}));eyes.position.set(0,2.02,-.3);entity.add(eyes);
- entityLight=new THREE.PointLight(0x8d7a3e,.6,3);entityLight.position.y=1.8;entity.add(entityLight);scene.add(entity);
+
+ // A towering, unnaturally thin silhouette made from tangled ink-like strokes.
+ const ink=new THREE.MeshStandardMaterial({color:0x080907,roughness:1});
+ const inkSoft=new THREE.MeshStandardMaterial({color:0x171914,roughness:1});
+ const addStroke=(points,material=ink,radius=.022)=>{
+  const curve=new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(p[0],p[1],p[2])));
+  const mesh=new THREE.Mesh(new THREE.TubeGeometry(curve,Math.max(8,points.length*5),radius,4,false),material);
+  entity.add(mesh);return mesh;
+ };
+ // Narrow, stretched core and a small, almost featureless head.
+ const core=new THREE.Mesh(new THREE.CapsuleGeometry(.16,1.35,5,7),ink);
+ core.position.set(0,2.05,0);entity.add(core);
+ const skull=new THREE.Mesh(new THREE.SphereGeometry(.19,10,8),ink);
+ skull.scale.set(.72,1.35,.72);skull.position.set(0,3.05,-.015);entity.add(skull);
+ // Long crooked arms, hanging almost to the knees.
+ addStroke([[-.12,2.72,0],[-.38,2.48,-.015],[-.52,1.95,.02],[-.7,1.38,-.04],[-.78,.72,-.08],[-.94,.28,-.1]],ink,.035);
+ addStroke([[.12,2.72,0],[.34,2.42,.015],[.46,1.92,-.02],[.42,1.42,.02],[.62,.82,-.04],[.58,.25,-.1]],ink,.035);
+ // Bent, mismatched legs give it a crooked, skittering outline.
+ addStroke([[-.08,1.35,0],[-.22,1.02,.02],[-.31,.66,-.02],[-.2,.28,-.08],[-.28,.04,-.12]],ink,.04);
+ addStroke([[.08,1.35,0],[.24,1.02,-.02],[.16,.7,.03],[.34,.34,-.04],[.48,.04,-.12]],ink,.04);
+ // Dense irregular scribbles over the torso and limbs.
+ let scribbleSeed=9137;
+ const sr=()=>{scribbleSeed=(scribbleSeed*1664525+1013904223)>>>0;return scribbleSeed/4294967296};
+ const scratches=[];
+ for(let i=0;i<145;i++){
+  const y=.42+sr()*2.45;
+  const width=.07+Math.sin((y/3.35)*Math.PI)*.29;
+  const x=(sr()*2-1)*width;
+  const z=(sr()*2-1)*.12-.035;
+  const len=.08+sr()*.32,lean=(sr()*2-1)*.22;
+  scratches.push([[x,y,z],[x+lean,y+len*.45,z-.025],[x-lean*.35,y+len,z+.025]]);
+ }
+ for(let i=0;i<scratches.length;i++)addStroke(scratches[i],i%4===0?inkSoft:ink,.009+sr()*.012);
+ // Loose loops and jagged cross-hatching make the outline read like frantic pencil marks.
+ for(let side of [-1,1])for(let i=0;i<13;i++){
+  const y=.55+sr()*2.35,x=side*(.16+sr()*.28),z=-.12-sr()*.08;
+  addStroke([[x,y,z],[x+side*(.12+sr()*.12),y+.12+sr()*.16,z-.015],[x-side*.08,y+.22+sr()*.14,z+.02]],inkSoft,.012);
+ }
+ // Two tiny dim points are just visible inside the scribbled face.
+ const eyeMat=new THREE.MeshBasicMaterial({color:0xc8b77a});
+ for(const x of [-.065,.065]){const eye=new THREE.Mesh(new THREE.SphereGeometry(.018,6,5),eyeMat);eye.position.set(x,3.08,-.16);entity.add(eye)}
+ entityLight=new THREE.PointLight(0x8d7a3e,.6,3);entityLight.position.y=2.1;entity.add(entityLight);scene.add(entity);
 }
 let yaw=0,pitch=0,entitySpeed=1.55,lastStep=0,moveVec=new THREE.Vector3();
 function showToast(s){$('toast').textContent=s;$('toast').style.opacity=1;clearTimeout(showToast.t);showToast.t=setTimeout(()=>$('toast').style.opacity=0,2100)}
