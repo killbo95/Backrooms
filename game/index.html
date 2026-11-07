@@ -28,6 +28,8 @@ const keys={},walls=[],pickups=[],lights=[],garageStations=[],raycaster=new THRE
 const CELL=8,HALF=4,CHUNK=15;
 const breachObstacles=[],breachByChunk=new Map();
 let lastFrameAt=0,localSprinting=false;
+let garageDoorGroup=null,garageDoorOpen=0,garageDoorTarget=0,garageMainLight=null,garageLampMaterial=null,garageLightsOn=true;
+let suitEquipped=false,oxygenEquipped=false,flashlightEquipped=false;
 let multiplayerSocket=null,multiplayerId=null,multiplayerRoom=null,lastNetSend=0,remotePlayers=new Map(),bodyCamTargetId=null,observerAvatar=null;
 let worldSeed=0;
 const loadedChunks=new Map(),chunkMaps=new Map();let activeChunkX=NaN,activeChunkZ=NaN;
@@ -72,6 +74,7 @@ function collides(pos,r=.34){
   if(Math.abs(pos.x-x*CELL)<HALF+r&&Math.abs(pos.z-z*CELL)<HALF+r)return true;
  }
  for(const b of breachObstacles)if(Math.abs(pos.x-b.x)<b.hx+r&&Math.abs(pos.z-b.z)<b.hz+r)return true;
+ if(currentLevel===0&&garageDoorOpen<.92&&Math.abs(pos.x)<4.05&&pos.z< -11.25&&pos.z> -12.2)return true;
  return false;
 }
 function updateChunks(){
@@ -135,6 +138,17 @@ function ensureChunk(cx,cz){
   box(.28,4.4,.5,-4.05,2.05,-11.65,steel);box(.28,4.4,.5,4.05,2.05,-11.65,steel);
   box(8.3,.34,.7,0,4.18,-11.65,darkSteel);
   const roller=new THREE.Mesh(new THREE.CylinderGeometry(.28,.28,7.7,10),steel);roller.rotation.z=Math.PI/2;roller.position.set(0,3.82,-11.2);group.add(roller);
+  // Heavy segmented roll-up shutter. It lifts as one animated panel into the overhead housing.
+  garageDoorGroup=new THREE.Group();garageDoorGroup.position.set(0,0,-11.62);group.add(garageDoorGroup);
+  const shutterMat=new THREE.MeshStandardMaterial({color:0x687174,metalness:.68,roughness:.48});
+  for(let y=.13;y<4.05;y+=.24){const slat=box(7.85,.19,.12,0,y,0,shutterMat);garageDoorGroup.add(slat);group.remove(slat)}
+  // Replace the temporary world-positioned slats with local shutter slats.
+  garageDoorGroup.clear();
+  for(let y=.13;y<4.05;y+=.24){const slat=new THREE.Mesh(new THREE.BoxGeometry(7.85,.19,.12),shutterMat);slat.position.set(0,y,0);garageDoorGroup.add(slat)}
+  const bottomBar=new THREE.Mesh(new THREE.BoxGeometry(8,.22,.2),darkSteel);bottomBar.position.set(0,.08,.015);garageDoorGroup.add(bottomBar);
+  // Wall-mounted controls on the right-hand side of the entrance.
+  box(.18,1.25,.12,9.15,1.55,-8.2,darkSteel);box(.08,.72,.08,9.03,1.6,-8.12,safety);
+  box(.18,1.25,.12,9.15,1.55,-5.6,darkSteel);
   // Compact floor trim and overhead supports.
   box(23.5,.1,23.5,0,-.205,0,darkSteel);
   for(const z of [-7,0,7])box(23,.13,.22,0,4.12,z,darkSteel);
@@ -156,14 +170,15 @@ function ensureChunk(cx,cz){
   for(let n=0;n<3;n++){const torch=box(.16,.16,.85,6.9+n*1.05,1.48,-3,steel);torch.rotation.z=Math.PI/2}
   // Stations use proximity prompts and E to interact.
   garageStations.push(
-   {name:'EQUIPMENT RACK — CHECK OUT FIELD SUIT',x:-8,z:-2,action:()=>{showToast('FIELD SUIT CHECKED — YOU ARE READY');playTone(520,.14,'triangle',.06)}},
-   {name:'OXYGEN — RESTORE STAMINA',x:8,z:4,action:()=>{stamina=100;$('stamina').style.width='100%';showToast('OXYGEN SUPPLY RESTORED');playTone(620,.16,'sine',.06)}},
-   {name:'FLASHLIGHT RACK — RECHARGE',x:8,z:-3,action:()=>{battery=100;flashOn=true;flashlight.visible=true;$('battery').textContent='100%';showToast('FLASHLIGHT FULLY CHARGED');playTone(720,.16,'sine',.06)}},
-   {name:'WORKBENCH — FIELD KIT RESTOCK',x:-8,z:4,action:()=>{stamina=100;battery=100;flashOn=true;flashlight.visible=true;$('stamina').style.width='100%';$('battery').textContent='100%';showToast('FIELD KIT RESTOCKED');playTone(680,.16,'triangle',.06)}}
+   {name:'E — EQUIP HAZMAT SUIT',x:-8,z:-2,action:()=>{suitEquipped=true;showToast('HAZMAT SUIT EQUIPPED');playTone(520,.14,'triangle',.06)}},
+   {name:'E — CONNECT OXYGEN TANK',x:8,z:4,action:()=>{oxygenEquipped=true;stamina=100;$('stamina').style.width='100%';showToast('OXYGEN CONNECTED');playTone(620,.16,'sine',.06)}},
+   {name:'E — TAKE FLASHLIGHT',x:8,z:-3,action:()=>{flashlightEquipped=true;battery=100;flashOn=true;flashlight.visible=true;$('battery').textContent='100%';showToast('FLASHLIGHT EQUIPPED');playTone(720,.16,'sine',.06)}},
+   {name:'E — TOGGLE GARAGE LIGHTS',x:9,z:-5.6,action:()=>{garageLightsOn=!garageLightsOn;if(garageMainLight)garageMainLight.intensity=garageLightsOn?7:0.08;if(garageLampMaterial)garageLampMaterial.emissiveIntensity=garageLightsOn?1.2:0.015;showToast(garageLightsOn?'GARAGE LIGHTS ON':'GARAGE LIGHTS OFF');playTone(garageLightsOn?620:180,.12,'sine',.05)}},
+   {name:'E — OPEN / CLOSE GARAGE DOOR',x:9,z:-8.2,action:()=>{if(!garageDoorTarget&&(!suitEquipped||!oxygenEquipped||!flashlightEquipped)){const missing=[!suitEquipped?'SUIT':null,!oxygenEquipped?'OXYGEN':null,!flashlightEquipped?'FLASHLIGHT':null].filter(Boolean).join(' · ');showToast('GEAR REQUIRED: '+missing);playTone(160,.2,'square',.035);return}garageDoorTarget=garageDoorTarget>.5?0:1;showToast(garageDoorTarget?'GARAGE DOOR OPENING':'GARAGE DOOR CLOSING');playTone(garageDoorTarget?260:190,.25,'sawtooth',.045)}}
   );
-  const lampMat=new THREE.MeshStandardMaterial({color:0xe4e1cf,emissive:0xcfc8a7,emissiveIntensity:1.2});
+  const lampMat=new THREE.MeshStandardMaterial({color:0xe4e1cf,emissive:0xcfc8a7,emissiveIntensity:1.2});garageLampMaterial=lampMat;
   for(const x of [-7,0,7]){box(2.6,.08,.8,x,4.0,0,darkSteel);box(2.35,.04,.65,x,3.93,0,lampMat)}
-  const garageLight=new THREE.PointLight(0xd9d5bd,7,24);garageLight.position.set(0,3.5,0);group.add(garageLight);
+  garageMainLight=new THREE.PointLight(0xd9d5bd,7,24);garageMainLight.position.set(0,3.5,0);group.add(garageMainLight);
  }
  const rnd=randomFor(cx+7919,cz-104729);
  // Scavengeable supplies: almond water restores flashlight charge; cookies restore stamina.
@@ -319,7 +334,7 @@ function addLevelOneEntities(){
 function buildWorld(){
  objectiveRng=randomFor(917,391);
  if(scene)scene.clear();
- loadedChunks.clear();chunkMaps.clear();walls.length=0;pickups.length=0;lights.length=0;garageStations.length=0;breachObstacles.length=0;breachByChunk.clear();activeChunkX=NaN;activeChunkZ=NaN;
+ loadedChunks.clear();chunkMaps.clear();walls.length=0;pickups.length=0;lights.length=0;garageStations.length=0;breachObstacles.length=0;breachByChunk.clear();activeChunkX=NaN;activeChunkZ=NaN;garageDoorGroup=null;garageDoorOpen=0;garageDoorTarget=0;garageMainLight=null;garageLampMaterial=null;
  wallpaperMaterial=null;ceilingMaterial=null;carpetMaterial=null;levelEntities=[];
  scene=new THREE.Scene();scene.background=new THREE.Color(currentLevel===0?0x81794d:0x303633);scene.fog=new THREE.FogExp2(currentLevel===0?0x81794d:0x303633,currentLevel===0?.012:.018);
  camera=new THREE.PerspectiveCamera(74,innerWidth/innerHeight,.08,180);camera.position.copy(startPos);camera.rotation.order='YXZ';bodyCam=new THREE.PerspectiveCamera(74,innerWidth/innerHeight,.08,180);bodyCam.rotation.order='YXZ';bodyCam.position.copy(startPos);
@@ -354,9 +369,9 @@ let audio=null;
 function playTone(freq=440,dur=.12,type='sine',vol=.06){if(!audio)return;const o=audio.ctx.createOscillator(),g=audio.ctx.createGain();o.type=type;o.frequency.value=freq;g.gain.setValueAtTime(vol,audio.ctx.currentTime);g.gain.exponentialRampToValueAtTime(.001,audio.ctx.currentTime+dur);o.connect(g);g.connect(audio.ctx.destination);o.start();o.stop(audio.ctx.currentTime+dur)}
 function startGame(seedOverride){
  currentLevel=0;worldSeed=Number.isFinite(seedOverride)?seedOverride:((Math.random()*0x7fffffff)|0);buildWorld();audio=initAudio();
- lastFrameAt=0;running=true;paused=false;won=false;stamina=100;battery=100;found=0;flashOn=true;
+ lastFrameAt=0;running=true;paused=false;won=false;stamina=100;battery=100;found=0;flashOn=false;suitEquipped=false;oxygenEquipped=false;flashlightEquipped=false;garageLightsOn=true;garageDoorOpen=0;garageDoorTarget=0;
  camera.position.copy(startPos);if(multiplayerSocket&&multiplayerId){const slot=Math.max(0,Number(window.multiplayerSlot)||0),count=Math.max(2,Math.min(20,Number(window.multiplayerMaxPlayers)||4)),angle=(slot/count)*Math.PI*2,radius=count<=4?.55:count<=8?.85:1.15;camera.position.x+=Math.cos(angle)*radius;camera.position.z+=Math.sin(angle)*radius}makeLocalAvatar();yaw=0;pitch=0;entitySpeed=2.6;lastPathAt=0;cachedTarget=null;
- flashlight.visible=true;pickups.forEach(p=>{p.taken=false;p.group.visible=true});
+ flashlight.visible=false;pickups.forEach(p=>{p.taken=false;p.group.visible=true});
  $('objective').innerHTML='POWER CELLS <strong id="count">0 / 3</strong>';$('count').textContent='0 / 3';document.querySelector('.brand').textContent='KITSUNEST STUDIOS  /  FIELD RECORDING 001';$('overlay').style.display='none';$('hud').style.display='block';$('flash').style.opacity=0;
  clock.getDelta();animate();
 }
@@ -372,9 +387,10 @@ function endGame(win){running=false;won=win;document.exitPointerLock?.();$('hud'
 $('start').addEventListener('click',()=>{if(running)return;if(paused)resumeGame();else startGame()});
 document.addEventListener('pointerlockchange',()=>{locked=document.pointerLockElement===renderer?.domElement;if(running&&!locked&&!('ontouchstart'in window))pauseGame()});
 document.addEventListener('mousemove',e=>{if(!running||('ontouchstart'in window))return;if(!locked&&e.target!==renderer?.domElement)return;yaw-=e.movementX*.0022;pitch-=e.movementY*.0022;pitch=Math.max(-1.35,Math.min(1.35,pitch));camera.rotation.set(pitch,yaw,0)});
-document.addEventListener('keydown',e=>{if(e.code==='KeyC'&&running&&!e.repeat){cycleBodyCam();return}keys[e.code]=true;if(e.code==='Escape'&&running)pauseGame();if(e.code==='KeyF'&&running){flashOn=!flashOn;flashlight.visible=flashOn;playTone(flashOn?620:260,.08)}if(e.code==='KeyE'&&running)interact()});
+document.addEventListener('keydown',e=>{if(e.code==='KeyC'&&running&&!e.repeat){cycleBodyCam();return}keys[e.code]=true;if(e.code==='Escape'&&running)pauseGame();if(e.code==='KeyF'&&running){if(!flashlightEquipped){showToast('TAKE A FLASHLIGHT FROM THE RACK FIRST');return}flashOn=!flashOn;flashlight.visible=flashOn;playTone(flashOn?620:260,.08)}if(e.code==='KeyE'&&running)interact()});
 document.addEventListener('keyup',e=>keys[e.code]=false);
 function interact(){
+ if(currentLevel===0&&camera.position.z< -14&&garageDoorOpen<.92){showToast('GARAGE DOOR IS CLOSED');return}
  let nearest=null,dist=2.7;for(const p of pickups){if(p.taken)continue;const d=camera.position.distanceTo(p.group.position);if(d<dist){dist=d;nearest=p}}
  if(nearest){nearest.taken=true;nearest.group.visible=false;if(nearest.kind==='cell'){found++;$('count').textContent=found+' / 3';sendNetwork({type:'collected',found});showToast('POWER CELL ACQUIRED');playTone(740,.18,'triangle',.08);if(found===3)showToast('EXIT POWER RESTORED — FIND THE GREEN LIGHT')}else if(nearest.kind==='almond'){battery=Math.min(100,battery+48);stamina=Math.min(100,stamina+18);$('battery').textContent=Math.round(battery)+'%';$('stamina').style.width=stamina+'%';showToast('ALMOND WATER — FLASHLIGHT RECHARGED');playTone(560,.16,'sine',.06)}else if(nearest.kind==='cookie'){stamina=Math.min(100,stamina+48);$('stamina').style.width=stamina+'%';showToast('COOKIE — ENERGY RESTORED');playTone(490,.12,'triangle',.05)}return}
  let station=null,stationDist=3.4;
@@ -480,8 +496,8 @@ function updateRemotePlayers(dt){remotePlayers.forEach(p=>{p.group.position.lerp
  p.group.position.y=THREE.MathUtils.damp(p.group.position.y,moving?Math.abs(Math.sin(p.phase*2))*(running?.075:.04):0,10,dt);
  p.group.rotation.z=THREE.MathUtils.damp(p.group.rotation.z,moving&&running?Math.sin(p.phase)*.035:0,8,dt);})}
 
-function updateWorld(t){pickups.forEach(p=>{if(!p.taken){if(p.kind==='cell'){p.group.rotation.y+=.012;p.group.position.y=1.05+Math.sin(t*2.2)*.12}else if(p.kind==='almond'){p.group.rotation.y+=.006;p.group.position.y=p.baseY+Math.sin(t*1.8)*.035}}});flashlight.intensity=flashOn?55:0}
-function animate(){if(!running)return;requestAnimationFrame(animate);const now=performance.now();if(now-lastFrameAt<1000/30)return;lastFrameAt=now;const dt=Math.min(clock.getDelta(),.05),t=clock.elapsedTime;updateChunks();updatePlayer(dt);let nearbyStation=null,nearbyDistance=3.4;for(const item of garageStations){const d=Math.hypot(camera.position.x-item.x,camera.position.z-item.z);if(d<nearbyDistance){nearbyStation=item;nearbyDistance=d}}if(nearbyStation)message('E — '+nearbyStation.name);else if(!pickups.some(p=>!p.taken&&camera.position.distanceTo(p.group.position)<2.7))message('');levelEntities.forEach(actor=>updateEntity(actor,dt,t));updateWorld(t);updateRemotePlayers(dt);if(multiplayerSocket&&multiplayerSocket.readyState===WebSocket.OPEN&&now-lastNetSend>100){lastNetSend=now;sendNetwork({type:'state',x:camera.position.x,y:camera.position.y,z:camera.position.z,yaw,pitch,level:currentLevel,flashOn,sprinting:localSprinting})}let renderCamera=camera;
+function updateWorld(t){pickups.forEach(p=>{if(!p.taken){if(p.kind==='cell'){p.group.rotation.y+=.012;p.group.position.y=1.05+Math.sin(t*2.2)*.12}else if(p.kind==='almond'){p.group.rotation.y+=.006;p.group.position.y=p.baseY+Math.sin(t*1.8)*.035}}});flashlight.intensity=flashOn?55:0;if(garageDoorGroup){garageDoorOpen=THREE.MathUtils.damp(garageDoorOpen,garageDoorTarget,3.2,Math.min(.05,clock.getDelta?.()||.016));garageDoorGroup.position.y=garageDoorOpen*4.35;}}
+function animate(){if(!running)return;requestAnimationFrame(animate);const now=performance.now();if(now-lastFrameAt<1000/30)return;lastFrameAt=now;const dt=Math.min(clock.getDelta(),.05),t=clock.elapsedTime;updateChunks();updatePlayer(dt);let nearbyStation=null,nearbyDistance=3.4;for(const item of garageStations){const d=Math.hypot(camera.position.x-item.x,camera.position.z-item.z);if(d<nearbyDistance){nearbyStation=item;nearbyDistance=d}}if(nearbyStation)message(nearbyStation.name);else if(!pickups.some(p=>!p.taken&&camera.position.distanceTo(p.group.position)<2.7))message('');levelEntities.forEach(actor=>updateEntity(actor,dt,t));updateWorld(t);updateRemotePlayers(dt);if(multiplayerSocket&&multiplayerSocket.readyState===WebSocket.OPEN&&now-lastNetSend>100){lastNetSend=now;sendNetwork({type:'state',x:camera.position.x,y:camera.position.y,z:camera.position.z,yaw,pitch,level:currentLevel,flashOn,sprinting:localSprinting})}let renderCamera=camera;
  if(bodyCamTargetId){
   const watched=remotePlayers.get(bodyCamTargetId);
   if(watched&&watched.level===currentLevel){
@@ -504,7 +520,7 @@ function animate(){if(!running)return;requestAnimationFrame(animate);const now=p
    renderCamera=bodyCam;
   }else{bodyCamTargetId=null;$('bodyCamStatus').style.display='none';bodyCamLight.visible=false;flashlight.visible=flashOn;if(observerAvatar)observerAvatar.visible=false}
  }else{bodyCamLight.visible=false;flashlight.visible=flashOn;if(observerAvatar)observerAvatar.visible=false}
- renderer.render(scene,renderCamera);if(currentLevel===0){if(found===3){const p=cellCenter(window.exitCell[0],window.exitCell[1]);message(camera.position.distanceTo(new THREE.Vector3(p.x,1.6,p.z))<3?'PRESS E TO ENTER LEVEL 1':'FIND THE GREEN EXIT')}else message('FIND THE POWER CELLS')}else{const p=cellCenter(window.elevatorCell[0],window.elevatorCell[1]);message(camera.position.distanceTo(new THREE.Vector3(p.x,1.6,p.z))<4.2?'PRESS E TO RETURN TO LEVEL 0':'FIND THE ELEVATOR — ABOUT 100 FEET FROM YOUR START')}}
+ renderer.render(scene,renderCamera);if(currentLevel===0&&camera.position.z< -14){if(found===3){const p=cellCenter(window.exitCell[0],window.exitCell[1]);message(camera.position.distanceTo(new THREE.Vector3(p.x,1.6,p.z))<3?'PRESS E TO ENTER LEVEL 1':'FIND THE GREEN EXIT')}else message('FIND THE POWER CELLS')}else if(currentLevel===0&&!nearbyStation)message('PREPARE YOUR GEAR · OPEN THE GARAGE DOOR');else{const p=cellCenter(window.elevatorCell[0],window.elevatorCell[1]);message(camera.position.distanceTo(new THREE.Vector3(p.x,1.6,p.z))<4.2?'PRESS E TO RETURN TO LEVEL 0':'FIND THE ELEVATOR — ABOUT 100 FEET FROM YOUR START')}}
 window.addEventListener('resize',()=>{if(!camera||!renderer)return;camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();if(bodyCam){bodyCam.aspect=innerWidth/innerHeight;bodyCam.updateProjectionMatrix()}renderer.setSize(innerWidth,innerHeight)});
 let touchStart=null;
 $('moveTouch').addEventListener('pointerdown',e=>{touchStart={x:e.clientX,y:e.clientY};$('moveTouch').setPointerCapture(e.pointerId)});$('moveTouch').addEventListener('pointermove',e=>{if(!touchStart)return;const dx=e.clientX-touchStart.x,dy=e.clientY-touchStart.y;keys.KeyW=dy<-8;keys.KeyS=dy>8;keys.KeyA=dx<-8;keys.KeyD=dx>8});$('moveTouch').addEventListener('pointerup',()=>{touchStart=null;keys.KeyW=keys.KeyS=keys.KeyA=keys.KeyD=false});
