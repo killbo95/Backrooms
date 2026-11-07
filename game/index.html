@@ -353,18 +353,31 @@ function applySharedProgress(n){found=Math.max(0,Math.min(3,n|0));const count=do
 function makeRemotePlayer(id,name){
  if(remotePlayers.has(id))return remotePlayers.get(id);
  const group=new THREE.Group();
- const cloth=new THREE.MeshStandardMaterial({color:0x536d68,roughness:.92});
- const dark=new THREE.MeshStandardMaterial({color:0x252d2b,roughness:1});
- const skin=new THREE.MeshStandardMaterial({color:0xc7bda0,roughness:.9});
- const torso=new THREE.Mesh(new THREE.BoxGeometry(.62,.78,.32),cloth);torso.position.y=1.18;group.add(torso);
- const head=new THREE.Mesh(new THREE.SphereGeometry(.22,10,8),skin);head.position.y=1.78;group.add(head);
- const neck=new THREE.Mesh(new THREE.CylinderGeometry(.09,.1,.14,7),skin);neck.position.y=1.62;group.add(neck);
+ // Backrooms field-explorer hazmat suit: hood, dark face shield, sealed suit and air tank.
+ const suit=new THREE.MeshStandardMaterial({color:0xb7a34e,roughness:.88});
+ const suitLight=new THREE.MeshStandardMaterial({color:0xd1bd68,roughness:.86});
+ const rubber=new THREE.MeshStandardMaterial({color:0x252b27,roughness:.96});
+ const visor=new THREE.MeshStandardMaterial({color:0x111a19,metalness:.22,roughness:.28});
+ const glass=new THREE.MeshStandardMaterial({color:0x64736b,metalness:.38,roughness:.22});
+ const metal=new THREE.MeshStandardMaterial({color:0x73786a,metalness:.62,roughness:.42});
+ const torso=new THREE.Mesh(new THREE.CapsuleGeometry(.31,.55,4,8),suit);torso.position.y=1.18;group.add(torso);
+ const chest=new THREE.Mesh(new THREE.BoxGeometry(.38,.27,.055),suitLight);chest.position.set(0,1.25,-.286);group.add(chest);
+ const collar=new THREE.Mesh(new THREE.TorusGeometry(.245,.065,7,16),rubber);collar.rotation.x=Math.PI/2;collar.position.y=1.58;group.add(collar);
+ const hood=new THREE.Mesh(new THREE.SphereGeometry(.285,12,10),suit);hood.scale.set(1,1.08,.94);hood.position.y=1.83;group.add(hood);
+ const faceShield=new THREE.Mesh(new THREE.SphereGeometry(.205,12,8,0,Math.PI*2,0,Math.PI*.55),visor);faceShield.scale.set(1,.78,.42);faceShield.position.set(0,1.84,-.205);faceShield.rotation.x=-.08;group.add(faceShield);
+ const visorGlint=new THREE.Mesh(new THREE.BoxGeometry(.22,.018,.012),glass);visorGlint.position.set(0,1.91,-.292);group.add(visorGlint);
+ // Compact breathing cylinder on the back, with dark harness straps.
+ const tank=new THREE.Mesh(new THREE.CylinderGeometry(.115,.13,.58,9),metal);tank.position.set(0,1.28,.285);group.add(tank);
+ const tankTop=new THREE.Mesh(new THREE.CylinderGeometry(.07,.07,.09,8),rubber);tankTop.position.set(0,1.62,.285);group.add(tankTop);
+ const harness=new THREE.Mesh(new THREE.BoxGeometry(.48,.12,.045),rubber);harness.position.set(0,1.43,.31);group.add(harness);
  const arms=[],legs=[];
  for(const side of [-1,1]){
-  const arm=new THREE.Mesh(new THREE.CapsuleGeometry(.095,.48,3,6),cloth);arm.position.set(side*.39,1.17,0);arm.rotation.z=side*-.08;group.add(arm);arms.push(arm);
-  const leg=new THREE.Mesh(new THREE.CapsuleGeometry(.12,.52,3,6),dark);leg.position.set(side*.17,.48,0);group.add(leg);legs.push(leg);
+  const arm=new THREE.Mesh(new THREE.CapsuleGeometry(.105,.48,3,7),suit);arm.position.set(side*.39,1.17,0);arm.rotation.z=side*-.09;group.add(arm);arms.push(arm);
+  const glove=new THREE.Mesh(new THREE.SphereGeometry(.115,8,7),rubber);glove.position.set(side*.405,.82,-.005);group.add(glove);
+  const leg=new THREE.Mesh(new THREE.CapsuleGeometry(.13,.53,3,7),suit);leg.position.set(side*.17,.48,0);group.add(leg);legs.push(leg);
+  const boot=new THREE.Mesh(new THREE.BoxGeometry(.25,.16,.38),rubber);boot.position.set(side*.17,.12,-.045);group.add(boot);
  }
- const marker=new THREE.Mesh(new THREE.BoxGeometry(.12,.12,.12),new THREE.MeshBasicMaterial({color:0xe5d98a}));marker.position.y=2.08;group.add(marker);
+ const belt=new THREE.Mesh(new THREE.CylinderGeometry(.325,.325,.09,12),rubber);belt.position.y=.83;group.add(belt);
  if(scene)scene.add(group);
  const p={group,target:new THREE.Vector3(),camTarget:new THREE.Vector3(0,1.65,0),camPosition:new THREE.Vector3(0,1.65,0),camYaw:0,camPitch:0,hasCameraState:false,yaw:0,pitch:0,level:currentLevel,name,arms,legs,phase:0,lastX:0,lastZ:0};
  remotePlayers.set(id,p);return p;
