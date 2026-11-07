@@ -1,7 +1,8 @@
 const CORS = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin": "https://killbo95.github.io",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type"
+  "Access-Control-Allow-Headers": "Content-Type",
+  "Vary": "Origin"
 };
 
 function json(data, status = 200) {
@@ -54,13 +55,33 @@ export class BackroomsRoom {
     this.env = env;
     this.state = { seed: null, level: 0, found: 0 };
     this.sockets = new Map();
+    this.ready = this.hydrate();
+  }
+
+  async hydrate() {
+    const saved = await this.ctx.storage.get("state");
+    if (saved && typeof saved === "object") {
+      this.state = {
+        seed: Number.isFinite(saved.seed) ? saved.seed : null,
+        level: saved.level === 1 ? 1 : 0,
+        found: Math.max(0, Math.min(3, Number(saved.found) || 0))
+      };
+    }
+  }
+
+  async persist() {
+    await this.ctx.storage.put("state", this.state);
   }
 
   async fetch(request) {
+    await this.ready;
     const url = new URL(request.url);
     if (url.pathname === "/init" && request.method === "POST") {
       const data = await request.json();
-      if (this.state.seed === null) this.state.seed = data.seed;
+      if (this.state.seed === null) {
+        this.state.seed = data.seed;
+        await this.persist();
+      }
       return Response.json({ ok: true });
     }
     if (url.pathname !== "/connect" || request.headers.get("Upgrade") !== "websocket") {
@@ -87,7 +108,7 @@ export class BackroomsRoom {
     }));
     this.broadcast({ type: "player-joined", id: playerId, name }, playerId);
 
-    server.addEventListener("message", event => {
+    server.addEventListener("message", async event => {
       if (typeof event.data !== "string" || event.data.length > 2048) return;
       let data;
       try { data = JSON.parse(event.data); } catch { return; }
@@ -105,9 +126,11 @@ export class BackroomsRoom {
       } else if (data.type === "progress") {
         this.state.level = data.level === 1 ? 1 : 0;
         this.state.found = Math.max(0, Math.min(3, Number(data.found) || 0));
+        await this.persist();
         this.broadcast({ type: "progress", level: this.state.level, found: this.state.found }, playerId);
       } else if (data.type === "collected") {
         this.state.found = Math.max(this.state.found, Math.min(3, Number(data.found) || 0));
+        await this.persist();
         this.broadcast({ type: "collected", found: this.state.found }, playerId);
       }
     });
