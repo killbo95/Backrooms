@@ -53,8 +53,9 @@ function makeChunkMap(cx,cz){
  // Keep the opening area around the starting point clear: a small lobby
  // that blends into a wider corridor, rather than spawning among wall edges.
  if(cx===0&&cz===0){
-  for(let z=5;z<=9;z++)for(let x=5;x<=9;x++)map[z][x]=false;
-  for(let z=2;z<=5;z++)for(let x=6;x<=8;x++)map[z][x]=false;
+  // A compact junction with one clear forward corridor. Keep the maze visible
+  // from spawn instead of flattening a huge 5x5 lobby.
+  for(const [x,z] of [[6,7],[8,7],[7,6],[7,8],[7,5]])map[z][x]=false;
  }
  const result=map.map(row=>row.slice());chunkMaps.set(key,result);return result;
 }
@@ -131,11 +132,26 @@ function ensureChunk(cx,cz){
   }
   const sp=cellCenter(cx*CHUNK+sx-7,cz*CHUNK+sz-7);supply.position.set(sp.x,0,sp.z);group.add(supply);pickups.push({group:supply,kind,taken:false,baseY:kind==='almond'?.02:.02,chunkKey:key});
  }
- for(let n=0;n<6;n++){
-  const x=1+Math.floor(rnd()*7)*2,z=1+Math.floor(rnd()*7)*2;if(map[z][x])continue;
+ // Ceiling fixtures: dark recessed frames with broad, softly glowing panels.
+ const fixtureFrame=new THREE.MeshStandardMaterial({color:0x4c4936,roughness:.95});
+ const fixtureGlow=new THREE.MeshStandardMaterial({color:0xffedbd,emissive:0xffd98a,emissiveIntensity:1.05,roughness:.7});
+ const fixturePositions=[];
+ for(let n=0;n<9;n++){
+  const x=1+Math.floor(rnd()*7)*2,z=1+Math.floor(rnd()*7)*2;
+  if(map[z][x])continue;
   const gx=cx*CHUNK+x-7,gz=cz*CHUNK+z-7,p=cellCenter(gx,gz);
-  const tile=new THREE.Mesh(new THREE.BoxGeometry(2.4,.06,1.25),new THREE.MeshStandardMaterial({color:0xfff5c2,emissive:0xffe99a,emissiveIntensity:1.8}));tile.position.set(p.x,4.01,p.z);group.add(tile);
-
+  fixturePositions.push(p);
+ }
+ if(fixturePositions.length){
+  const frames=new THREE.InstancedMesh(new THREE.BoxGeometry(3.0,.13,1.65),fixtureFrame,fixturePositions.length);
+  const panels=new THREE.InstancedMesh(new THREE.BoxGeometry(2.65,.045,1.3),fixtureGlow,fixturePositions.length);
+  const obj=new THREE.Object3D();
+  fixturePositions.forEach((p,i)=>{
+   obj.position.set(p.x,4.13,p.z);obj.updateMatrix();frames.setMatrixAt(i,obj.matrix);
+   obj.position.set(p.x,4.045,p.z);obj.updateMatrix();panels.setMatrixAt(i,obj.matrix);
+  });
+  frames.instanceMatrix.needsUpdate=true;panels.instanceMatrix.needsUpdate=true;
+  group.add(frames,panels);
  }
  scene.add(group);loadedChunks.set(key,{group});
 }
@@ -219,7 +235,7 @@ function box(w,h,d,mat,x,y,z){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d
 function buildWorld(){
  if(scene)scene.clear();
  loadedChunks.clear();chunkMaps.clear();walls.length=0;pickups.length=0;lights.length=0;breachObstacles.length=0;breachByChunk.clear();activeChunkX=NaN;activeChunkZ=NaN;
- scene=new THREE.Scene();scene.background=new THREE.Color(0xaaa36d);scene.fog=new THREE.FogExp2(0xaaa36d,.009);
+ scene=new THREE.Scene();scene.background=new THREE.Color(0x81794d);scene.fog=new THREE.FogExp2(0x81794d,.012);
  camera=new THREE.PerspectiveCamera(74,innerWidth/innerHeight,.08,180);camera.position.copy(startPos);camera.rotation.order='YXZ';
  if(!renderer){
   renderer=new THREE.WebGLRenderer({antialias:false,powerPreference:'high-performance'});
@@ -228,8 +244,8 @@ function buildWorld(){
   renderer.shadowMap.enabled=false;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.12;host.appendChild(renderer.domElement);
  }
  clock=new THREE.Clock();
- ambient=new THREE.HemisphereLight(0xffedb1,0x49452a,1.25);scene.add(ambient);
- const fill=new THREE.DirectionalLight(0xffe5a0,.3);fill.position.set(-20,30,10);scene.add(fill);
+ ambient=new THREE.HemisphereLight(0xd8c98a,0x302b1b,.82);scene.add(ambient);
+ const fill=new THREE.DirectionalLight(0xffdfa0,.18);fill.position.set(-20,30,10);scene.add(fill);
  flashlight=new THREE.SpotLight(0xfff3ce,55,26,Math.PI/7,.55,1.5);flashlight.position.set(0,0,0);flashlight.target.position.set(0,0,-1);camera.add(flashlight);camera.add(flashlight.target);scene.add(camera);
  updateChunks();
  // Random objectives are placed in reachable cells at increasing distances.
@@ -247,7 +263,7 @@ function buildWorld(){
  // Temporary monster showcase: spawn the entity directly ahead of the player.
  const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw));
  entity=new THREE.Group();
- entity.position.copy(camera.position).addScaledVector(forward,10);
+ entity.position.copy(camera.position).addScaledVector(forward,18);
  entity.position.y=0;
  const towardPlayer=new THREE.Vector3(camera.position.x-entity.position.x,0,camera.position.z-entity.position.z);
  entity.rotation.y=Math.atan2(-towardPlayer.x,-towardPlayer.z);
@@ -261,7 +277,7 @@ function buildWorld(){
   entity.add(mesh);return mesh;
  };
  // Narrow, stretched core and a small, almost featureless head.
- const core=new THREE.Mesh(new THREE.CapsuleGeometry(.16,1.35,5,7),ink);
+ const core=new THREE.Mesh(new THREE.CapsuleGeometry(.085,1.15,5,7),ink);
  core.position.set(0,2.05,0);entity.add(core);
  const skull=new THREE.Mesh(new THREE.SphereGeometry(.19,10,8),ink);
  skull.scale.set(.72,1.35,.72);skull.position.set(0,3.05,-.015);entity.add(skull);
@@ -275,9 +291,9 @@ function buildWorld(){
  let scribbleSeed=9137;
  const sr=()=>{scribbleSeed=(scribbleSeed*1664525+1013904223)>>>0;return scribbleSeed/4294967296};
  const scratches=[];
- for(let i=0;i<145;i++){
+ for(let i=0;i<82;i++){
   const y=.42+sr()*2.45;
-  const width=.07+Math.sin((y/3.35)*Math.PI)*.29;
+  const width=.045+Math.sin((y/3.35)*Math.PI)*.19;
   const x=(sr()*2-1)*width;
   const z=(sr()*2-1)*.12-.035;
   const len=.08+sr()*.32,lean=(sr()*2-1)*.22;
@@ -285,7 +301,7 @@ function buildWorld(){
  }
  for(let i=0;i<scratches.length;i++)addStroke(scratches[i],i%4===0?inkSoft:ink,.009+sr()*.012);
  // Loose loops and jagged cross-hatching make the outline read like frantic pencil marks.
- for(let side of [-1,1])for(let i=0;i<13;i++){
+ for(let side of [-1,1])for(let i=0;i<8;i++){
   const y=.55+sr()*2.35,x=side*(.16+sr()*.28),z=-.12-sr()*.08;
   addStroke([[x,y,z],[x+side*(.12+sr()*.12),y+.12+sr()*.16,z-.015],[x-side*.08,y+.22+sr()*.14,z+.02]],inkSoft,.012);
  }
@@ -335,7 +351,7 @@ function pathTarget(){
  let cur=end;while(prev.has(cur[0]+","+cur[1])){const p=prev.get(cur[0]+","+cur[1]);if(p[0]===sx&&p[1]===sz)break;cur=p}
  cachedTarget=cellCenter(cur[0],cur[1]);return cachedTarget;
 }
-function updateEntity(dt,t){const target=pathTarget();const toPlayer=new THREE.Vector3(target.x-entity.position.x,0,target.z-entity.position.z);const realDistance=Math.hypot(camera.position.x-entity.position.x,camera.position.z-entity.position.z);const d=realDistance;const speed=entitySpeed+(found*.22)+(d<12?.55:0);if(toPlayer.length()>.45){toPlayer.normalize();const next=entity.position.clone().addScaledVector(toPlayer,speed*dt);if(!collides(next,.48))entity.position.copy(next);entity.rotation.y=Math.atan2(toPlayer.x,toPlayer.z)}if(d<1.45){$('flash').style.opacity=.65;setTimeout(()=>$('flash').style.opacity=0,100);endGame(false)}if(d<18&&Math.random()<.006){playTone(95+Math.random()*35,.3,'sawtooth',.018)}entity.children[0].position.y=1.1+Math.sin(t*5)*.07;entityLight.intensity=.45+Math.sin(t*7)*.15}
+function updateEntity(dt,t){const target=pathTarget();const toPlayer=new THREE.Vector3(target.x-entity.position.x,0,target.z-entity.position.z);const realDistance=Math.hypot(camera.position.x-entity.position.x,camera.position.z-entity.position.z);const d=realDistance;const speed=entitySpeed+(found*.22)+(d<12?.55:0);if(toPlayer.length()>.45){toPlayer.normalize();const next=entity.position.clone().addScaledVector(toPlayer,speed*dt);if(!collides(next,.48))entity.position.copy(next);entity.rotation.y=Math.atan2(toPlayer.x,toPlayer.z)}if(d<1.45){$('flash').style.opacity=.65;setTimeout(()=>$('flash').style.opacity=0,100);endGame(false)}if(d<18&&Math.random()<.006){playTone(95+Math.random()*35,.3,'sawtooth',.018)}entity.children[0].position.y=2.05+Math.sin(t*5)*.045;entityLight.intensity=.35+Math.sin(t*7)*.12}
 function updateWorld(t){pickups.forEach(p=>{if(!p.taken){if(p.kind==='cell'){p.group.rotation.y+=.012;p.group.position.y=1.05+Math.sin(t*2.2)*.12}else if(p.kind==='almond'){p.group.rotation.y+=.006;p.group.position.y=p.baseY+Math.sin(t*1.8)*.035}}});flashlight.intensity=flashOn?55:0}
 function animate(){if(!running)return;requestAnimationFrame(animate);const now=performance.now();if(now-lastFrameAt<1000/30)return;lastFrameAt=now;const dt=Math.min(clock.getDelta(),.05),t=clock.elapsedTime;updateChunks();updatePlayer(dt);updateEntity(dt,t);updateWorld(t);renderer.render(scene,camera);if(found===3){const exit=cellCenter(window.exitCell[0],window.exitCell[1]);if(camera.position.distanceTo(new THREE.Vector3(exit.x,1.6,exit.z))<3)message('PRESS E TO OPEN THE EXIT');else message('THE EXIT IS SOMEWHERE IN THE SOUTHERN CORRIDORS')}else message('FIND THE POWER CELLS');}
 window.addEventListener('resize',()=>{if(!camera||!renderer)return;camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
