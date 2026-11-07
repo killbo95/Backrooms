@@ -156,30 +156,66 @@ function ensureChunk(cx,cz){
   const amberButtonMat=new THREE.MeshStandardMaterial({color:0xd1ad38,emissive:0x59420a,emissiveIntensity:.45});
   const button=(mat,x,y)=>{const b=new THREE.Mesh(new THREE.CylinderGeometry(.13,.13,.09,12),mat);b.rotation.x=Math.PI/2;b.position.set(x,y,-11.56);group.add(b)};
   button(greenButtonMat,4.9,1.92);button(redButtonMat,5.15,1.52);button(amberButtonMat,5.4,1.12);
-  // Compact floor trim and overhead supports.
+  // Floor trim and lighter overhead supports: keep the ceiling structure subtle.
   box(23.5,.1,23.5,0,-.205,0,darkSteel);
-  for(const z of [-7,0,7])box(23,.13,.22,0,4.12,z,darkSteel);
-  for(const x of [-7,0,7])box(.16,.1,22,x,4.08,0,steel);
+  const beamMat=new THREE.MeshStandardMaterial({color:0x777f82,metalness:.35,roughness:.7});
+  for(const z of [-7,0,7])box(23,.09,.16,0,4.12,z,beamMat);
+  for(const x of [-7,0,7])box(.12,.07,22,x,4.08,0,beamMat);
   for(const x of [-10.5,10.5])box(.16,.025,17,x,-.135,0,safety);
-  // Workbench and hazmat suit display on the left.
+  // Hazmat suit display: a full-size mannequin standing securely on the workbench.
   box(4,.16,1.2,-8,1.05,4,darkSteel);box(4,.1,1.2,-8,1.2,4,steel);
+  box(3.7,.08,.12,-8,2.72,4.42,steel);
   const suit=new THREE.Group();
-  const suitMat=new THREE.MeshStandardMaterial({color:0xd0bd63,roughness:.82}),visorMat=new THREE.MeshStandardMaterial({color:0x101918,metalness:.42,roughness:.18});
-  const torso=new THREE.Mesh(new THREE.CapsuleGeometry(.38,.72,4,8),suitMat);torso.position.y=1.9;suit.add(torso);
-  const hood=new THREE.Mesh(new THREE.SphereGeometry(.34,10,8),suitMat);hood.position.y=2.72;suit.add(hood);
-  const visor=new THREE.Mesh(new THREE.SphereGeometry(.23,10,8),visorMat);visor.scale.set(1,.65,.35);visor.position.set(0,2.72,-.27);suit.add(visor);
-  const suitTank=new THREE.Mesh(new THREE.CylinderGeometry(.16,.18,.72,8),steel);suitTank.position.set(0,1.9,.4);suit.add(suitTank);
-  suit.position.set(-8,-1.15,-2);suit.scale.setScalar(1.12);group.add(suit);
-  // Mannequin legs, boots and sleeves keep the displayed suit grounded on its rack.
-  for(const side of [-1,1]){const leg=new THREE.Mesh(new THREE.CylinderGeometry(.13,.15,.48,8),suitMat);leg.position.set(side*.2,.94,0);suit.add(leg);const boot=new THREE.Mesh(new THREE.BoxGeometry(.3,.16,.48),darkSteel);boot.position.set(side*.2,1.2,-.08);suit.add(boot);const arm=new THREE.Mesh(new THREE.CylinderGeometry(.12,.14,.88,8),suitMat);arm.position.set(side*.49,1.92,0);arm.rotation.z=-side*.12;suit.add(arm);}
-  // Oxygen cylinders and flashlight charging rack on the right.
+  const suitMat=new THREE.MeshStandardMaterial({color:0xd8c56d,roughness:.78}),visorMat=new THREE.MeshStandardMaterial({color:0x101918,metalness:.48,roughness:.16});
+  const seamMat=new THREE.MeshStandardMaterial({color:0x8e803e,roughness:.8});
+  const torso=new THREE.Mesh(new THREE.CapsuleGeometry(.43,.82,5,10),suitMat);torso.position.y=1.95;suit.add(torso);
+  const hood=new THREE.Mesh(new THREE.SphereGeometry(.39,12,10),suitMat);hood.position.y=2.85;suit.add(hood);
+  const visor=new THREE.Mesh(new THREE.SphereGeometry(.255,12,10),visorMat);visor.scale.set(1,.68,.38);visor.position.set(0,2.85,-.3);suit.add(visor);
+  const visorRim=new THREE.Mesh(new THREE.TorusGeometry(.265,.035,8,16),seamMat);visorRim.position.set(0,2.85,-.285);visorRim.scale.set(1,.68,1);suit.add(visorRim);
+  const suitTank=new THREE.Mesh(new THREE.CylinderGeometry(.2,.22,.9,10),steel);suitTank.position.set(0,1.98,.43);suit.add(suitTank);
+  const tankBand=new THREE.Mesh(new THREE.TorusGeometry(.205,.035,7,12),darkSteel);tankBand.rotation.x=Math.PI/2;tankBand.position.set(0,2.05,.43);suit.add(tankBand);
+  for(const side of [-1,1]){
+   const leg=new THREE.Mesh(new THREE.CylinderGeometry(.16,.18,.62,10),suitMat);leg.position.set(side*.22,.92,0);suit.add(leg);
+   const boot=new THREE.Mesh(new THREE.BoxGeometry(.34,.2,.52),darkSteel);boot.position.set(side*.22,.56,-.07);suit.add(boot);
+   const arm=new THREE.Mesh(new THREE.CylinderGeometry(.15,.17,1.02,10),suitMat);arm.position.set(side*.55,1.98,0);arm.rotation.z=-side*.13;suit.add(arm);
+   const glove=new THREE.Mesh(new THREE.SphereGeometry(.17,8,8),darkSteel);glove.position.set(side*.59,1.42,-.02);suit.add(glove);
+  }
+  suit.position.set(-8,.82,4);suit.scale.setScalar(1.08);group.add(suit);
+  // Oxygen station: two clearly visible cylinders secured to a labelled rack.
   box(3.6,.14,1.1,8,1.05,4,darkSteel);
-  for(let n=0;n<2;n++){const tankMesh=new THREE.Mesh(new THREE.CylinderGeometry(.24,.24,1.55,10),steel);tankMesh.position.set(7.35+n*1.25,1.95,4);group.add(tankMesh);const cap=new THREE.Mesh(new THREE.CylinderGeometry(.12,.12,.14,8),safety);cap.position.set(7.35+n*1.25,2.8,4);group.add(cap)}
-  box(3.6,.14,1,8,1.25,-3,darkSteel);
-  for(let n=0;n<3;n++){const torch=box(.16,.16,.85,6.9+n*1.05,1.48,-3,steel);torch.rotation.z=Math.PI/2}
+  box(3.5,1.85,.12,8,2.05,4.48,steel);
+  for(let n=0;n<2;n++){
+   const tx=7.35+n*1.25;
+   const tankMesh=new THREE.Mesh(new THREE.CylinderGeometry(.25,.25,1.65,12),steel);tankMesh.position.set(tx,1.95,4);group.add(tankMesh);
+   const cap=new THREE.Mesh(new THREE.CylinderGeometry(.14,.14,.18,10),safety);cap.position.set(tx,2.87,4);group.add(cap);
+   const valve=new THREE.Mesh(new THREE.TorusGeometry(.13,.035,7,12),darkSteel);valve.position.set(tx,2.98,4);group.add(valve);
+  }
+  // Flashlight charging shelf with unmistakable torch bodies, bright lenses and charging indicators.
+  box(3.8,.16,1,8,1.25,-3,darkSteel);
+  const torchBody=new THREE.MeshStandardMaterial({color:0x252c30,metalness:.75,roughness:.3});
+  const lensMat=new THREE.MeshStandardMaterial({color:0xc8efff,emissive:0x79cfff,emissiveIntensity:1.1,roughness:.2});
+  for(let n=0;n<3;n++){
+   const tx=6.95+n*1.05;
+   const handle=new THREE.Mesh(new THREE.CylinderGeometry(.105,.105,.82,12),torchBody);handle.rotation.z=Math.PI/2;handle.position.set(tx,1.52,-3);group.add(handle);
+   const head=new THREE.Mesh(new THREE.CylinderGeometry(.17,.13,.22,12),steel);head.rotation.z=Math.PI/2;head.position.set(tx-.48,1.52,-3);group.add(head);
+   const lens=new THREE.Mesh(new THREE.CircleGeometry(.12,12),lensMat);lens.rotation.y=-Math.PI/2;lens.position.set(tx-.6,1.52,-3);group.add(lens);
+   const charge=new THREE.Mesh(new THREE.BoxGeometry(.18,.07,.07),new THREE.MeshStandardMaterial({color:0x55d78a,emissive:0x1c8a42,emissiveIntensity:.8}));charge.position.set(tx,1.38,-3);group.add(charge);
+  }
+  // Wall lockers and storage cabinets add a practical preparation-room feel without blocking the floor.
+  for(const [x,z] of [[-10.55,0],[-10.55,3.1],[10.55,0],[10.55,3.1]]){
+   box(1.05,2.35,.16,x,1.35,z, darkSteel);
+   box(.88,2.12,.08,x,1.35,z-.12,steel);
+   box(.07,.34,.08,x+.32,1.35,z-.19,safety);
+  }
+  // Small equipment-status panels above the work areas.
+  const signMat=new THREE.MeshStandardMaterial({color:0x252c30,roughness:.8});
+  box(3.2,.48,.12,-8,3.18,4.5,signMat);
+  box(3.2,.48,.12,8,3.18,-3.5,signMat);
+  for(const x of [-9.1,-8,-6.9])box(.62,.07,.035,x,3.18,4.42,safety);
+  for(const x of [6.9,8,9.1])box(.62,.07,.035,x,3.18,-3.58,safety)
   // Stations use proximity prompts and E to interact.
   garageStations.push(
-   {name:'E — EQUIP HAZMAT SUIT',x:-8,z:-2,action:()=>{suitEquipped=true;updateGearStatus();showToast('HAZMAT SUIT EQUIPPED');playTone(520,.14,'triangle',.06)}},
+   {name:'E — EQUIP HAZMAT SUIT',x:-8,z:4,action:()=>{suitEquipped=true;updateGearStatus();showToast('HAZMAT SUIT EQUIPPED');playTone(520,.14,'triangle',.06)}},
    {name:'E — CONNECT OXYGEN TANK',x:8,z:4,action:()=>{oxygenEquipped=true;updateGearStatus();stamina=100;$('stamina').style.width='100%';showToast('OXYGEN CONNECTED');playTone(620,.16,'sine',.06)}},
    {name:'E — TAKE FLASHLIGHT',x:8,z:-3,action:()=>{flashlightEquipped=true;updateGearStatus();battery=100;flashOn=true;flashlight.visible=true;$('battery').textContent='100%';showToast('FLASHLIGHT EQUIPPED');playTone(720,.16,'sine',.06)}},
    {name:'E — TOGGLE GARAGE LIGHTS',x:5.4,z:-10.25,action:()=>{garageLightsOn=!garageLightsOn;if(garageMainLight)garageMainLight.intensity=garageLightsOn?16:0.12;if(garageLampMaterial)garageLampMaterial.emissiveIntensity=garageLightsOn?1.8:0.02;if(ambient)ambient.intensity=garageLightsOn?1.15:.12;showToast(garageLightsOn?'GARAGE LIGHTS ON':'GARAGE LIGHTS OFF');playTone(garageLightsOn?620:180,.12,'sine',.05)}},
