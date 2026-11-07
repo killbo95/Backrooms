@@ -50,6 +50,12 @@ function makeChunkMap(cx,cz){
  }
  // Every chunk has four aligned portals, connecting it to its neighbours.
  map[7][0]=false;map[7][14]=false;map[0][7]=false;map[14][7]=false;
+ // Keep the opening area around the starting point clear: a small lobby
+ // that blends into a wider corridor, rather than spawning among wall edges.
+ if(cx===0&&cz===0){
+  for(let z=5;z<=9;z++)for(let x=5;x<=9;x++)map[z][x]=false;
+  for(let z=2;z<=5;z++)for(let x=6;x<=8;x++)map[z][x]=false;
+ }
  const result=map.map(row=>row.slice());chunkMaps.set(key,result);return result;
 }
 function isWallCell(gx,gz){const cx=chunkOf(gx),cz=chunkOf(gz),lx=localOf(gx,cx),lz=localOf(gz,cz);return makeChunkMap(cx,cz)[lz][lx]}
@@ -238,7 +244,13 @@ function buildWorld(){
  const doorMat=new THREE.MeshStandardMaterial({color:0x163d27,emissive:0x1aff75,emissiveIntensity:.8});
  const door=new THREE.Mesh(new THREE.BoxGeometry(1.8,2.8,.16),doorMat);door.position.set(0,1.45,-3.5);exitGroup.add(door);
  const exitLamp=new THREE.PointLight(0x39ff83,5,12);exitLamp.position.set(0,2.7,-3.2);exitGroup.add(exitLamp);scene.add(exitGroup);
- const [exn,ezn]=randomOpenCell(24,32);entity=new THREE.Group();entity.position.copy(cellCenter(exn,ezn));
+ // Temporary monster showcase: spawn it directly ahead of the player.
+ const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw));
+ entity=new THREE.Group();
+ entity.position.copy(camera.position).addScaledVector(forward,10);
+ entity.position.y=0;
+ const towardPlayer=new THREE.Vector3(camera.position.x-entity.position.x,0,camera.position.z-entity.position.z);
+ entity.rotation.y=Math.atan2(-towardPlayer.x,-towardPlayer.z);
  const dark=new THREE.MeshStandardMaterial({color:0x090a08,roughness:.95});
  const body=new THREE.Mesh(new THREE.CapsuleGeometry(.42,.9,4,8),dark);body.position.y=1.1;entity.add(body);
  const head=new THREE.Mesh(new THREE.SphereGeometry(.32,12,10),dark);head.position.y=2;entity.add(head);
