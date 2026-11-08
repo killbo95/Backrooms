@@ -502,8 +502,8 @@ function updatePlayer(dt){const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math
  if(sprint)stamina=Math.max(0,stamina-8*dt);else stamina=Math.min(100,stamina+17*dt);$('stamina').style.width=stamina+'%';battery=Math.max(0,battery-(flashOn?.045:0)*dt);if(battery<=0&&flashOn){flashOn=false;flashlight.visible=false;showToast('FLASHLIGHT BATTERY EMPTY')}if(battery<100&&!flashOn)battery=Math.min(100,battery+.012*dt);$('battery').textContent=Math.round(battery)+'%';}
 let lastPathAt=0,cachedTarget=null;
 function spawnLevelZeroEntity(){
- // A towering, malformed shadow figure: too-long limbs, a split face,
- // exposed rib-like arcs and thin trailing tendrils.
+ // The Level 0 entity is inspired by the supplied reference: a tall,
+ // moss-dark, capsule-headed figure with impossibly long limbs.
  let chosen=null;
  for(let tries=0;tries<900;tries++){
   const angle=objectiveRng()*Math.PI*2,distance=30+objectiveRng()*10;
@@ -512,54 +512,64 @@ function spawnLevelZeroEntity(){
  }
  if(!chosen)chosen=randomOpenCell(30,40);
  const group=new THREE.Group();group.position.copy(cellCenter(chosen[0],chosen[1]));
- const ink=new THREE.MeshStandardMaterial({color:0x030504,roughness:1});
- const edgeInk=new THREE.MeshStandardMaterial({color:0x101512,roughness:1});
- const socketMat=new THREE.MeshBasicMaterial({color:0x050302});
- const eyeMat=new THREE.MeshBasicMaterial({color:0xff321d});
- const toothMat=new THREE.MeshBasicMaterial({color:0xb9ad8a});
- const strand=(points,radius=.075,material=ink)=>{
-  const curve=new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(p[0],p[1],p[2])));
-  const mesh=new THREE.Mesh(new THREE.TubeGeometry(curve,24,radius,5,false),material);group.add(mesh);return mesh;
+ const skin=new THREE.MeshStandardMaterial({color:0x29372d,roughness:1,metalness:0});
+ const darkSkin=new THREE.MeshStandardMaterial({color:0x101812,roughness:1});
+ const mouthMat=new THREE.MeshStandardMaterial({color:0x080a08,roughness:1});
+ const teethMat=new THREE.MeshStandardMaterial({color:0x9a9b80,roughness:.9});
+ const jointGeo=new THREE.SphereGeometry(.075,7,6);
+ const limbSegment=(parent,length,radius,material)=>{
+  const mesh=new THREE.Mesh(new THREE.CylinderGeometry(radius*.72,radius,length,7),material);
+  mesh.position.y=-length/2;parent.add(mesh);
+  const joint=new THREE.Mesh(jointGeo,material);joint.position.y=-length;parent.add(joint);
+  return mesh;
  };
- // Narrow, unnaturally tall body and bent spine.
- strand([[0,.08,0],[-.13,.7,.06],[.08,1.35,-.04],[-.12,2.05,.04],[.06,2.75,-.02],[-.04,3.45,0],[.12,4.05,-.03]],.14);
- const head=new THREE.Group();head.position.set(.12,3.88,-.015);group.add(head);
- const skull=new THREE.Mesh(new THREE.SphereGeometry(.29,8,7),ink);skull.scale.set(.72,1.24,.76);skull.rotation.z=-.22;head.add(skull);
- const brow=new THREE.Mesh(new THREE.BoxGeometry(.48,.105,.13),edgeInk);brow.position.set(0,.09,-.205);brow.rotation.z=-.18;head.add(brow);
+ // A narrow, slightly crooked central body.
+ const spine=new THREE.Mesh(new THREE.CapsuleGeometry(.105,1.48,4,7),skin);spine.position.set(0,1.95,.025);spine.rotation.z=-.035;group.add(spine);
+ const chest=new THREE.Mesh(new THREE.CapsuleGeometry(.17,.62,4,7),skin);chest.position.set(-.025,2.48,-.005);chest.rotation.z=.06;group.add(chest);
+ // Tall rounded cylinder head, almost featureless until it turns toward you.
+ const head=new THREE.Group();head.position.set(-.025,3.62,-.015);group.add(head);
+ const skull=new THREE.Mesh(new THREE.CapsuleGeometry(.245,.78,7,10),skin);skull.scale.set(.92,1,.86);head.add(skull);
+ const crown=new THREE.Mesh(new THREE.SphereGeometry(.225,9,7),darkSkin);crown.scale.set(1,.28,.94);crown.position.y=.46;head.add(crown);
+ // A narrow horizontal mouth slit with small irregular teeth.
+ const mouth=new THREE.Mesh(new THREE.BoxGeometry(.34,.105,.035),mouthMat);mouth.position.set(0,-.22,-.207);head.add(mouth);
+ for(let i=0;i<7;i++){
+  const tooth=new THREE.Mesh(new THREE.BoxGeometry(.025,.045,.018),teethMat);
+  tooth.position.set(-.13+i*.043,-.205+(i%2)*.012,-.229);head.add(tooth);
+ }
+ // Long, thin arms with hanging forearms and narrow claw-like fingers.
+ const arms=[];
  for(const side of [-1,1]){
-  const socket=new THREE.Mesh(new THREE.SphereGeometry(.105,7,6),socketMat);socket.scale.set(1,.78,.55);socket.position.set(side*.105,.015,-.226);head.add(socket);
-  const eye=new THREE.Mesh(new THREE.SphereGeometry(.052,7,6),eyeMat);eye.position.set(side*.105,.015,-.286);head.add(eye);
-  const glow=new THREE.PointLight(0xff210c,.42,2.8);glow.position.set(side*.11,.02,-.36);head.add(glow);
+  const shoulder=new THREE.Group();shoulder.position.set(side*.16,3.02,0);group.add(shoulder);
+  const upper=limbSegment(shoulder,.82,.075,skin);upper.rotation.z=side*-.48;
+  const elbow=new THREE.Group();elbow.position.set(side*.38,-.72,0);shoulder.add(elbow);
+  const forearm=limbSegment(elbow,.92,.052,skin);forearm.rotation.z=side*.2;
+  const hand=new THREE.Group();hand.position.set(side*.06,-.91,-.005);elbow.add(hand);
+  const palm=new THREE.Mesh(new THREE.CapsuleGeometry(.035,.22,3,6),darkSkin);palm.rotation.z=Math.PI/2;hand.add(palm);
+  for(let f=0;f<3;f++){
+   const finger=new THREE.Mesh(new THREE.CylinderGeometry(.012,.019,.24,5),skin);
+   finger.position.set(side*(.09+f*.035),-.14,-.015-f*.025);finger.rotation.z=side*(.35+f*.18);hand.add(finger);
+  }
+  arms.push({shoulder,elbow,hand,side});
  }
- // A narrow vertical mouth with uneven, pale teeth.
- strand([[-.12,-.13,-.27],[-.04,-.22,-.3],[.035,-.14,-.3],[.12,-.26,-.27]],.035,edgeInk);
- for(let i=0;i<5;i++){
-  const tooth=new THREE.Mesh(new THREE.ConeGeometry(.027,.105,4),toothMat);
-  tooth.position.set(-.09+i*.045,-.205-(i%2)*.018,-.305);tooth.rotation.z=Math.PI;head.add(tooth);
+ // Long, jointed legs: the hip and knee pivots are animated independently.
+ const legs=[];
+ for(const side of [-1,1]){
+  const hip=new THREE.Group();hip.position.set(side*.105,1.28,0);group.add(hip);
+  limbSegment(hip,.78,.085,skin);
+  const knee=new THREE.Group();knee.position.set(0,-.76,0);hip.add(knee);
+  limbSegment(knee,.94,.06,skin);
+  const ankle=new THREE.Group();ankle.position.set(0,-.91,0);knee.add(ankle);
+  const foot=new THREE.Mesh(new THREE.CapsuleGeometry(.045,.32,3,6),darkSkin);foot.rotation.x=Math.PI/2;foot.position.set(side*.015,-.045,-.12);ankle.add(foot);
+  legs.push({hip,knee,ankle,side});
  }
- // Arms hang far below the waist, then bend back like hooked branches.
- const armL=strand([[-.08,3.02,0],[-.52,2.82,.02],[-.94,2.35,-.02],[-1.16,1.68,.04],[-1.48,1.22,-.08]],.105);
- const armR=strand([[.08,3.02,0],[.55,2.78,-.03],[.91,2.38,.03],[1.04,1.72,-.04],[1.38,1.28,-.1]],.105);
- strand([[-1.48,1.22,-.08],[-1.58,.96,-.12],[-1.46,.84,-.15]],.035,edgeInk);
- strand([[-1.48,1.22,-.08],[-1.72,1.03,-.11],[-1.78,.91,-.15]],.035,edgeInk);
- strand([[1.38,1.28,-.1],[1.47,1.02,-.14],[1.42,.88,-.17]],.035,edgeInk);
- strand([[1.38,1.28,-.1],[1.62,1.08,-.12],[1.7,.94,-.16]],.035,edgeInk);
- // Long, mismatched legs and feet.
- strand([[-.08,1.08,0],[-.38,.68,.04],[-.49,.12,-.12],[-.76,.04,-.36]],.12);
- strand([[.08,1.08,0],[.3,.62,-.04],[.18,.1,.08],[.48,.035,-.3]],.12);
- // Rib-like curves make the torso look hollow and skeletal without gore.
- for(let i=0;i<4;i++){
-  const y=1.65+i*.29,w=.31+i*.035;
-  strand([[-.08,y,.02],[-w,y+.13,-.16],[0,y+.05,-.25],[w,y-.04,-.14],[.08,y,.02]],.035,edgeInk);
- }
- // Thin back tendrils sway independently as the creature moves.
+ // Slight unevenness in the silhouette, plus a slow head tilt.
  const tendrils=[];
- for(let i=0;i<3;i++){
-  const side=i-1;
-  tendrils.push(strand([[side*.12,3.25,.12],[side*.42,3.02,.36],[side*.56,2.55,.55],[side*(.72+i*.12),2.15,.7]],.035,edgeInk));
+ for(const side of [-1,1]){
+  const tail=new THREE.Mesh(new THREE.CylinderGeometry(.012,.035,.72,5),darkSkin);
+  tail.position.set(side*.19,2.95,.17);tail.rotation.z=side*.48;group.add(tail);tendrils.push(tail);
  }
  scene.add(group);
- return {kind:'stalker',group,speed:5.15,limbs:[armL,armR],head,tendrils,phase:Math.random()*6.28,aggro:false,searchTarget:null,nextSearchAt:0,spawnedAt:clock.elapsedTime,relocated:false,nextFallbackTry:0};
+ return {kind:'stalker',group,speed:5.15,limbs:[],legs,arms,head,tendrils,phase:Math.random()*6.28,aggro:false,searchTarget:null,nextSearchAt:0,spawnedAt:clock.elapsedTime,relocated:false,nextFallbackTry:0};
 }
 function stalkerWallBlocksSight(fromX,fromZ,toX,toZ){
  const dx=toX-fromX,dz=toZ-fromZ,d=Math.hypot(dx,dz),steps=Math.max(3,Math.ceil(d/1.1));
