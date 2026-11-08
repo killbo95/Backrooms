@@ -438,6 +438,7 @@ function buildWorld(){
  const fill=new THREE.DirectionalLight(currentLevel===0?0xffdfa0:0x9aa9a2,currentLevel===0?.18:.07);fill.position.set(-20,30,10);scene.add(fill);
  flashlight=new THREE.SpotLight(0xfff3ce,55,26,Math.PI/7,.55,1.5);flashlight.position.set(0,0,0);flashlight.target.position.set(0,0,-1);camera.add(flashlight);camera.add(flashlight.target);scene.add(camera);bodyCamLight=new THREE.SpotLight(0xfff3ce,55,26,Math.PI/7,.55,1.5);bodyCamLight.position.set(0,0,0);bodyCamLight.target.position.set(0,0,-1);bodyCam.add(bodyCamLight);bodyCam.add(bodyCamLight.target);scene.add(bodyCam);
  updateChunks();
+ if(currentLevel===0)levelEntities.push(spawnLevelZeroEntity());
  // Level 0 objectives lead into Level 1. Level 1 has a return elevator.
  if(currentLevel===0){
   [[15,25],[25,36],[36,48]].forEach(range=>{const [x,z]=randomOpenCell(range[0],range[1]),p=cellCenter(x,z),g=new THREE.Group();g.position.set(p.x,1.05,p.z);const core=new THREE.Mesh(new THREE.OctahedronGeometry(.34,0),new THREE.MeshStandardMaterial({color:0xffe68b,emissive:0xffb300,emissiveIntensity:2,metalness:.35,roughness:.25}));g.add(core);const ring=new THREE.Mesh(new THREE.TorusGeometry(.5,.035,8,24),new THREE.MeshBasicMaterial({color:0xffe9a3}));g.add(ring);g.add(new THREE.PointLight(0xffc94d,3,7));scene.add(g);pickups.push({group:g,kind:'cell',taken:false})});
@@ -500,6 +501,36 @@ function updatePlayer(dt){const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math
  localSprinting=sprint;animateLocalAvatar(moving,sprint,dt);
  if(sprint)stamina=Math.max(0,stamina-8*dt);else stamina=Math.min(100,stamina+17*dt);$('stamina').style.width=stamina+'%';battery=Math.max(0,battery-(flashOn?.045:0)*dt);if(battery<=0&&flashOn){flashOn=false;flashlight.visible=false;showToast('FLASHLIGHT BATTERY EMPTY')}if(battery<100&&!flashOn)battery=Math.min(100,battery+.012*dt);$('battery').textContent=Math.round(battery)+'%';}
 let lastPathAt=0,cachedTarget=null;
+function spawnLevelZeroEntity(){
+ // Spawn the Level 0 stalker 30–40 world units from the player, in an open cell.
+ let chosen=null;
+ for(let tries=0;tries<900;tries++){
+  const angle=objectiveRng()*Math.PI*2,distance=30+objectiveRng()*10;
+  const x=Math.round(Math.cos(angle)*distance),z=Math.round(Math.sin(angle)*distance);
+  if(!isWallCell(x,z)&&!isWallCell(x+1,z)&&!isWallCell(x-1,z)&&!isWallCell(x,z+1)&&!isWallCell(x,z-1)){chosen=[x,z];break}
+ }
+ if(!chosen)chosen=randomOpenCell(30,40);
+ const group=new THREE.Group();group.position.copy(cellCenter(chosen[0],chosen[1]));
+ const ink=new THREE.MeshStandardMaterial({color:0x090b0a,roughness:1});
+ const eye=new THREE.MeshBasicMaterial({color:0xc7b98a});
+ // A tall, narrow, irregular silhouette made from crooked ink-like strands.
+ const strand=(points,radius=.075)=>{
+  const curve=new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(p[0],p[1],p[2])));
+  const mesh=new THREE.Mesh(new THREE.TubeGeometry(curve,18,radius,5,false),ink);group.add(mesh);
+ };
+ strand([[0,.08,0],[-.08,.65,.04],[.06,1.25,-.02],[-.04,1.9,.03],[.02,2.55,0],[.12,3.05,-.03]],.11);
+ strand([[-.02,2.3,0],[-.42,2.05,.02],[-.78,1.72,-.04],[-.92,1.12,.02]],.075);
+ strand([[.02,2.28,0],[.38,2.02,-.03],[.72,1.62,.04],[.82,.95,0]],.075);
+ strand([[-.03,.95,0],[-.28,.62,.04],[-.38,.12,-.02]],.085);
+ strand([[.03,.95,0],[.28,.58,-.04],[.42,.08,.03]],.085);
+ strand([[-.05,2.82,0],[-.23,3.1,.04],[.05,3.28,-.02],[.22,3.05,.02]],.055);
+ for(const side of [-1,1]){
+  const glint=new THREE.Mesh(new THREE.SphereGeometry(.045,6,5),eye);
+  glint.position.set(side*.105,2.83,-.095);group.add(glint);
+ }
+ scene.add(group);
+ return {kind:'stalker',group,speed:4.8,limbs:[],phase:Math.random()*6.28,aggro:false,searchTarget:null,nextSearchAt:0};
+}
 function pathTarget(actor){
   // Level 1 is a broad, open industrial habitat rather than a maze. Direct
   // steering avoids repeated grid searches that can stall older computers.
@@ -510,7 +541,47 @@ function pathTarget(actor){
   return new THREE.Vector3(px+ux*25,0,pz+uz*25);
  }
  function updateEntity(actor,dt,t){
- const target=pathTarget(actor),dir=new THREE.Vector3(target.x-actor.group.position.x,0,target.z-actor.group.position.z),d=Math.hypot(camera.position.x-actor.group.position.x,camera.position.z-actor.group.position.z);let travelled=0;
+ const px=camera.position.x,pz=camera.position.z,ex=actor.group.position.x,ez=actor.group.position.z;
+ const d=Math.hypot(px-ex,pz-ez);let target,travelled=0;
+ if(actor.kind==='stalker'){
+  // It wanders and searches until the player comes within 29 units, then
+  // keeps pursuing. A 20–29 unit trigger band prevents distant instant aggro.
+  if(d<=29)actor.aggro=true;
+  if(actor.aggro)target=new THREE.Vector3(px,0,pz);
+  else{
+   if(!actor.searchTarget||t>=actor.nextSearchAt||Math.hypot(actor.searchTarget.x-ex,actor.searchTarget.z-ez)<1.6){
+    const cx=Math.round(ex/CELL),cz=Math.round(ez/CELL);let foundTarget=null;
+    for(let tries=0;tries<36;tries++){
+     const angle=Math.random()*Math.PI*2,steps=1+Math.random()*2.2;
+     const x=cx+Math.round(Math.cos(angle)*steps),z=cz+Math.round(Math.sin(angle)*steps);
+     if(!isWallCell(x,z)){foundTarget=cellCenter(x,z);break}
+    }
+    actor.searchTarget=foundTarget||new THREE.Vector3(ex,0,ez);
+    actor.nextSearchAt=t+2.5+Math.random()*2.5;
+   }
+   target=actor.searchTarget;
+  }
+  const dir=new THREE.Vector3(target.x-ex,0,target.z-ez);
+  if(dir.length()>.35){
+   dir.normalize();const next=actor.group.position.clone().addScaledVector(dir,actor.speed*dt);
+   if(!collides(next,.42)){travelled=actor.group.position.distanceTo(next);actor.group.position.copy(next)}
+   else if(!actor.aggro){actor.searchTarget=null;actor.nextSearchAt=0}
+   actor.group.rotation.y=Math.atan2(-dir.x,-dir.z);
+  }
+  actor.phase+=travelled*7.2;
+  actor.group.position.y=.055+Math.abs(Math.sin(t*7.5))*.11;
+  actor.group.rotation.z=Math.sin(t*2.1)*.035;
+  if(d<1.55){$('flash').style.opacity=.55;setTimeout(()=>$('flash').style.opacity=0,100);endGame(false)}
+  if(d<22&&Math.random()<.003)playTone(92,.24,'sawtooth',.015);
+  return;
+ }
+ const targetLevelOne=pathTarget(actor),dir=new THREE.Vector3(targetLevelOne.x-ex,0,targetLevelOne.z-ez);
+ if(dir.length()>.45){dir.normalize();const next=actor.group.position.clone().addScaledVector(dir,actor.speed*dt);if(!collides(next,actor.kind==='hound'?.55:.42)){travelled=actor.group.position.distanceTo(next);actor.group.position.copy(next)}actor.group.rotation.y=Math.atan2(-dir.x,-dir.z)}
+ actor.phase+=travelled*(actor.kind==='hound'?6.5:4.5);actor.blend=THREE.MathUtils.damp(actor.blend||0,travelled>0?1:0,8,dt);actor.limbs.forEach((limb,i)=>{limb.rotation.z=Math.sin(actor.phase)*actor.blend*(i%2===0?.38:-.38)});
+ if(actor.kind==='smiler'){actor.group.position.y=Math.sin(t*2.4)*.12;actor.group.children[actor.group.children.length-1].intensity=.35+Math.sin(t*8)*.25}
+ if(d<1.55){$('flash').style.opacity=.55;setTimeout(()=>$('flash').style.opacity=0,100);endGame(false)}
+ if(d<22&&Math.random()<.002)playTone(actor.kind==='hound'?115:actor.kind==='smiler'?180:78,.22,'sawtooth',.012);
+}
  if(dir.length()>.45){dir.normalize();const next=actor.group.position.clone().addScaledVector(dir,actor.speed*dt);if(!collides(next,actor.kind==='hound'?.55:.42)){travelled=actor.group.position.distanceTo(next);actor.group.position.copy(next)}actor.group.rotation.y=Math.atan2(-dir.x,-dir.z)}
  actor.phase+=travelled*(actor.kind==='hound'?6.5:4.5);actor.blend=THREE.MathUtils.damp(actor.blend||0,travelled>0?1:0,8,dt);actor.limbs.forEach((limb,i)=>{limb.rotation.z=Math.sin(actor.phase)*actor.blend*(i%2===0?.38:-.38)});
  if(actor.kind==='smiler'){actor.group.position.y=Math.sin(t*2.4)*.12;actor.group.children[actor.group.children.length-1].intensity=.35+Math.sin(t*8)*.25}
