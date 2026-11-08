@@ -633,12 +633,28 @@ function pathTarget(actor){
    else if(!actor.aggro){actor.searchTarget=null;actor.nextSearchAt=0}
    actor.group.rotation.y=Math.atan2(-dir.x,-dir.z);
   }
-  actor.phase+=travelled*7.2;
-  actor.group.position.y=.055+Math.abs(Math.sin(t*7.5))*.11;
-  actor.group.rotation.z=Math.sin(t*2.1)*.035;
-  if(actor.head){actor.head.rotation.z=Math.sin(t*3.1)*.12;actor.head.rotation.x=Math.sin(t*1.7)*.09}
-  if(actor.tendrils)actor.tendrils.forEach((v,i)=>{v.rotation.x=Math.sin(t*3.8+i*1.7)*.11;v.rotation.z=Math.sin(t*2.6+i*2.1)*.13});
-  if(actor.limbs)actor.limbs.forEach((v,i)=>{v.rotation.x=Math.sin(actor.phase*.65+i*Math.PI)*.08});
+  actor.phase+=travelled*2.6;
+  const walk=Math.min(1,travelled/Math.max(.001,actor.speed*dt));
+  actor.group.position.y=.035+Math.abs(Math.sin(actor.phase*2))*.055*walk;
+  actor.group.rotation.z=Math.sin(t*2.1)*.035+Math.sin(actor.phase)*.035*walk;
+  if(actor.head){actor.head.rotation.z=Math.sin(t*1.35)*.16+Math.sin(actor.phase*.5)*.045;actor.head.rotation.x=Math.sin(t*1.7)*.07}
+  // Alternating long strides, with the knees folding as each foot lifts.
+  if(actor.legs)actor.legs.forEach((leg,i)=>{
+   const swing=Math.sin(actor.phase+i*Math.PI)*.62*walk;
+   leg.hip.rotation.x=swing;
+   leg.hip.rotation.z=leg.side*(.035+Math.abs(swing)*.035);
+   leg.knee.rotation.x=Math.max(0,Math.sin(actor.phase+i*Math.PI+1.05))*.82*walk;
+   leg.ankle.rotation.x=-leg.knee.rotation.x*.35-swing*.18;
+  });
+  // Arms swing opposite to the legs, making the walk feel less mechanical.
+  if(actor.arms)actor.arms.forEach((arm,i)=>{
+   const swing=Math.sin(actor.phase+i*Math.PI+Math.PI)*.42*walk;
+   arm.shoulder.rotation.x=swing;
+   arm.shoulder.rotation.z=arm.side*(.12+Math.abs(swing)*.08);
+   arm.elbow.rotation.x=-.12+Math.max(0,Math.sin(actor.phase+i*Math.PI+2))*.22*walk;
+   arm.hand.rotation.z=Math.sin(t*2+i)*.08;
+  });
+  if(actor.tendrils)actor.tendrils.forEach((v,i)=>{v.rotation.x=Math.sin(t*2.8+i*1.7)*.11;v.rotation.z=Math.sin(t*2.1+i*2.1)*.13});
   if(d<1.55){$('flash').style.opacity=.55;setTimeout(()=>$('flash').style.opacity=0,100);endGame(false)}
   if(d<22&&Math.random()<.003)playTone(92,.24,'sawtooth',.015);
   return;
