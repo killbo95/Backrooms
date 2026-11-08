@@ -554,12 +554,12 @@ function spawnLevelZeroEntity(){
  // Long, jointed legs: the hip and knee pivots are animated independently.
  const legs=[];
  for(const side of [-1,1]){
-  const hip=new THREE.Group();hip.position.set(side*.105,1.28,0);group.add(hip);
-  limbSegment(hip,.78,.085,skin);
-  const knee=new THREE.Group();knee.position.set(0,-.76,0);hip.add(knee);
-  limbSegment(knee,.94,.06,skin);
-  const ankle=new THREE.Group();ankle.position.set(0,-.91,0);knee.add(ankle);
-  const foot=new THREE.Mesh(new THREE.CapsuleGeometry(.045,.32,3,6),darkSkin);foot.rotation.x=Math.PI/2;foot.position.set(side*.015,-.045,-.12);ankle.add(foot);
+  const hip=new THREE.Group();hip.position.set(side*.105,1.42,0);group.add(hip);
+  limbSegment(hip,.66,.085,skin);
+  const knee=new THREE.Group();knee.position.set(0,-.63,0);hip.add(knee);
+  limbSegment(knee,.68,.06,skin);
+  const ankle=new THREE.Group();ankle.position.set(0,-.65,0);knee.add(ankle);
+  const foot=new THREE.Mesh(new THREE.CapsuleGeometry(.04,.22,3,6),darkSkin);foot.rotation.x=Math.PI/2;foot.position.set(side*.015,-.025,-.1);ankle.add(foot);
   legs.push({hip,knee,ankle,side});
  }
  // Slight unevenness in the silhouette, plus a slow head tilt.
