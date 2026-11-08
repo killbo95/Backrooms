@@ -626,6 +626,9 @@ function pathTarget(actor){
   actor.phase+=travelled*7.2;
   actor.group.position.y=.055+Math.abs(Math.sin(t*7.5))*.11;
   actor.group.rotation.z=Math.sin(t*2.1)*.035;
+  if(actor.head){actor.head.rotation.z=Math.sin(t*3.1)*.12;actor.head.rotation.x=Math.sin(t*1.7)*.09}
+  if(actor.tendrils)actor.tendrils.forEach((v,i)=>{v.rotation.x=Math.sin(t*3.8+i*1.7)*.11;v.rotation.z=Math.sin(t*2.6+i*2.1)*.13});
+  if(actor.limbs)actor.limbs.forEach((v,i)=>{v.rotation.x=Math.sin(actor.phase*.65+i*Math.PI)*.08});
   if(d<1.55){$('flash').style.opacity=.55;setTimeout(()=>$('flash').style.opacity=0,100);endGame(false)}
   if(d<22&&Math.random()<.003)playTone(92,.24,'sawtooth',.015);
   return;
