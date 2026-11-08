@@ -18,6 +18,7 @@
 
 <script type="module">
 import * as THREE from 'three';
+import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
 import { buildLevelOne } from './level1/level1.js';
 const $=id=>document.getElementById(id);
 const host=$('game');
@@ -582,7 +583,40 @@ function spawnLevelZeroEntity(){
   tail.position.set(side*.14,2.92,.17);tail.rotation.z=side*.34;group.add(tail);tendrils.push(tail);
  }
  scene.add(group);
- return {kind:'stalker',group,speed:5.15,limbs:[],legs,arms,head,tendrils,phase:Math.random()*6.28,aggro:false,searchTarget:null,nextSearchAt:0,spawnedAt:clock.elapsedTime,relocated:false,nextFallbackTry:0};
+ const actor={kind:'stalker',group,speed:5.15,limbs:[],legs,arms,head,tendrils,phase:Math.random()*6.28,aggro:false,searchTarget:null,nextSearchAt:0,spawnedAt:clock.elapsedTime,relocated:false,nextFallbackTry:0,mixer:null,modelLoaded:false};
+ // Load the supplied Sketchfab FBX for Level 0. Keep the procedural figure as
+ // a fallback so a missing asset never prevents the level from starting.
+ const fbxLoader=new FBXLoader();
+ const textureLoader=new THREE.TextureLoader();
+ const assetBase='./assets/level0-monster/';
+ const baseMap=textureLoader.load(assetBase+'Material.001_Base_Color.png');
+ baseMap.colorSpace=THREE.SRGBColorSpace;
+ const normalMap=textureLoader.load(assetBase+'Material.001_Normal_OpenGL.png');
+ const roughnessMap=textureLoader.load(assetBase+'Material.001_Roughness.png');
+ const aoMap=textureLoader.load(assetBase+'Material.001_Mixed_AO.png');
+ fbxLoader.load(assetBase+'monster.fbx',model=>{
+  model.traverse(node=>{
+   if(!node.isMesh)return;
+   node.castShadow=true;node.receiveShadow=true;
+   const mat=new THREE.MeshStandardMaterial({map:baseMap,normalMap,roughnessMap,aoMap,roughness:1,metalness:0});
+   node.material=mat;
+   if(node.geometry&&!node.geometry.attributes.uv2&&node.geometry.attributes.uv)node.geometry.setAttribute('uv2',node.geometry.attributes.uv);
+  });
+  const bounds=new THREE.Box3().setFromObject(model),size=bounds.getSize(new THREE.Vector3());
+  if(size.y>0){
+   const scale=4.15/size.y;model.scale.setScalar(scale);
+   const scaledBounds=new THREE.Box3().setFromObject(model),center=scaledBounds.getCenter(new THREE.Vector3());
+   model.position.x-=center.x;model.position.z-=center.z;model.position.y-=scaledBounds.min.y;
+  }
+  // The uploaded FBX's animation stack is used for the creature's movement.
+  group.clear();group.add(model);actor.modelLoaded=true;
+  if(model.animations&&model.animations.length){
+   actor.mixer=new THREE.AnimationMixer(model);
+   const preferred=model.animations.find(clip=>/walk|run|free/i.test(clip.name))||model.animations[0];
+   actor.mixer.clipAction(preferred).reset().play();
+  }
+ },undefined,error=>console.warn('Level 0 monster FBX failed to load; using fallback model.',error));
+ return actor;
 }
 function stalkerWallBlocksSight(fromX,fromZ,toX,toZ){
  const dx=toX-fromX,dz=toZ-fromZ,d=Math.hypot(dx,dz),steps=Math.max(3,Math.ceil(d/1.1));
@@ -615,6 +649,7 @@ function pathTarget(actor){
  const px=camera.position.x,pz=camera.position.z,ex=actor.group.position.x,ez=actor.group.position.z;
  const d=Math.hypot(px-ex,pz-ez);let target,travelled=0;
  if(actor.kind==='stalker'){
+  if(actor.mixer)actor.mixer.update(dt);
   // It wanders and searches until the player comes within 29 units, then
   // keeps pursuing. A 20–29 unit trigger band prevents distant instant aggro.
   if(!actor.aggro&&t-actor.spawnedAt>=60&&!actor.relocated&&t>=actor.nextFallbackTry){
