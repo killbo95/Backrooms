@@ -583,7 +583,7 @@ function spawnLevelZeroEntity(){
   tail.position.set(side*.14,2.92,.17);tail.rotation.z=side*.34;group.add(tail);tendrils.push(tail);
  }
  scene.add(group);
- const actor={kind:'stalker',group,speed:5.15,limbs:[],legs,arms,head,tendrils,phase:Math.random()*6.28,aggro:false,searchTarget:null,nextSearchAt:0,spawnedAt:clock.elapsedTime,relocated:false,nextFallbackTry:0,mixer:null,modelLoaded:false};
+ const actor={kind:'stalker',group,speed:8.0,limbs:[],legs,arms,head,tendrils,phase:Math.random()*6.28,aggro:false,searchTarget:null,nextSearchAt:0,spawnedAt:clock.elapsedTime,relocated:false,nextFallbackTry:0,mixer:null,modelLoaded:false};
  // Load the supplied Sketchfab FBX for Level 0. Keep the procedural figure as
  // a fallback so a missing asset never prevents the level from starting.
  const fbxLoader=new FBXLoader();
