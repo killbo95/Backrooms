@@ -512,8 +512,8 @@ function spawnLevelZeroEntity(){
  }
  if(!chosen)chosen=randomOpenCell(30,40);
  const group=new THREE.Group();group.position.copy(cellCenter(chosen[0],chosen[1]));
- const skin=new THREE.MeshStandardMaterial({color:0x29372d,roughness:1,metalness:0});
- const darkSkin=new THREE.MeshStandardMaterial({color:0x101812,roughness:1});
+ const skin=new THREE.MeshStandardMaterial({color:0x53634a,roughness:1,metalness:0});
+ const darkSkin=new THREE.MeshStandardMaterial({color:0x202b20,roughness:1});
  const mouthMat=new THREE.MeshStandardMaterial({color:0x080a08,roughness:1});
  const teethMat=new THREE.MeshStandardMaterial({color:0x9a9b80,roughness:.9});
  const jointGeo=new THREE.SphereGeometry(.038,7,6);
@@ -549,7 +549,7 @@ function spawnLevelZeroEntity(){
    const finger=new THREE.Mesh(new THREE.CylinderGeometry(.008,.013,.18,5),skin);
    finger.position.set(side*(.07+f*.027),-.105,-.015-f*.02);finger.rotation.z=side*(.35+f*.18);hand.add(finger);
   }
-  if(side<0){shoulder.rotation.z=-.38;elbow.rotation.z=-.95;shoulder.rotation.x=-.35}else{shoulder.rotation.z=.22;elbow.rotation.z=.12} arms.push({shoulder,elbow,hand,side});
+  if(side<0){shoulder.rotation.z=-.38;elbow.rotation.z=-.95;shoulder.rotation.x=-.35}else{shoulder.rotation.z=.22;elbow.rotation.z=.12} arms.push({shoulder,elbow,hand,side,baseShoulderZ:shoulder.rotation.z,baseElbowZ:elbow.rotation.z,baseShoulderX:shoulder.rotation.x});
  }
  // Long, jointed legs: the hip and knee pivots are animated independently.
  const legs=[];
@@ -649,8 +649,9 @@ function pathTarget(actor){
   // Arms swing opposite to the legs, making the walk feel less mechanical.
   if(actor.arms)actor.arms.forEach((arm,i)=>{
    const swing=Math.sin(actor.phase+i*Math.PI+Math.PI)*.42*walk;
-   arm.shoulder.rotation.x=swing;
-   arm.shoulder.rotation.z=arm.side*(.12+Math.abs(swing)*.08);
+   arm.shoulder.rotation.x=arm.baseShoulderX+swing;
+   arm.shoulder.rotation.z=arm.baseShoulderZ+arm.side*Math.abs(swing)*.08;
+   arm.elbow.rotation.z=arm.baseElbowZ;
    arm.elbow.rotation.x=-.12+Math.max(0,Math.sin(actor.phase+i*Math.PI+2))*.22*walk;
    arm.hand.rotation.z=Math.sin(t*2+i)*.08;
   });
