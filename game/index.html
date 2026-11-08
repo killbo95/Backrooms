@@ -512,8 +512,21 @@ function spawnLevelZeroEntity(){
  }
  if(!chosen)chosen=randomOpenCell(30,40);
  const group=new THREE.Group();group.position.copy(cellCenter(chosen[0],chosen[1]));
- const skin=new THREE.MeshStandardMaterial({color:0x53634a,roughness:1,metalness:0});
- const darkSkin=new THREE.MeshStandardMaterial({color:0x202b20,roughness:1});
+ // Desaturated olive/moss-green skin with irregular dark green mottling,
+ // matching the reference creature rather than rendering as a flat black silhouette.
+ const skinCanvas=document.createElement('canvas');skinCanvas.width=128;skinCanvas.height=128;
+ const skinCtx=skinCanvas.getContext('2d');
+ skinCtx.fillStyle='#58654b';skinCtx.fillRect(0,0,128,128);
+ for(let i=0;i<420;i++){
+  const x=Math.random()*128,y=Math.random()*128,r=1+Math.random()*8;
+  const shade=Math.random();
+  skinCtx.fillStyle=shade<.42?'rgba(18,29,18,.34)':shade<.76?'rgba(125,133,91,.24)':'rgba(35,48,29,.22)';
+  skinCtx.beginPath();skinCtx.ellipse(x,y,r*(.5+Math.random()),r*.45,Math.random()*Math.PI,0,Math.PI*2);skinCtx.fill();
+ }
+ const skinTexture=new THREE.CanvasTexture(skinCanvas);
+ skinTexture.wrapS=THREE.RepeatWrapping;skinTexture.wrapT=THREE.RepeatWrapping;skinTexture.repeat.set(2,2);
+ const skin=new THREE.MeshStandardMaterial({color:0xb8c0a2,map:skinTexture,roughness:1,metalness:0,emissive:0x172016,emissiveIntensity:.28});
+ const darkSkin=new THREE.MeshStandardMaterial({color:0x384331,roughness:1,emissive:0x10180e,emissiveIntensity:.18});
  const mouthMat=new THREE.MeshStandardMaterial({color:0x080a08,roughness:1});
  const teethMat=new THREE.MeshStandardMaterial({color:0x9a9b80,roughness:.9});
  const jointGeo=new THREE.SphereGeometry(.038,7,6);
