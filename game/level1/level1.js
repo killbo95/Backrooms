@@ -35,6 +35,7 @@ export function buildLevelOne(THREE,scene,randomOpenCell,cellCenter){
   scene.add(group);levelEntities.push({kind,group,speed,limbs,phase:Math.random()*6.28,lastPathAt:0,cachedTarget:null});
  };
  addActor('hound',[8,12],4.15);addActor('smiler',[9,13],1.05);addActor('skin-stealer',[13,18],2.35);
+ return levelEntities;
 }
  const entities=buildLevelOneEntities(THREE,scene,randomOpenCell,cellCenter);
  return {elevatorCell,elevator:lift,entities};
