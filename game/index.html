@@ -502,7 +502,8 @@ function updatePlayer(dt){const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math
  if(sprint)stamina=Math.max(0,stamina-8*dt);else stamina=Math.min(100,stamina+17*dt);$('stamina').style.width=stamina+'%';battery=Math.max(0,battery-(flashOn?.045:0)*dt);if(battery<=0&&flashOn){flashOn=false;flashlight.visible=false;showToast('FLASHLIGHT BATTERY EMPTY')}if(battery<100&&!flashOn)battery=Math.min(100,battery+.012*dt);$('battery').textContent=Math.round(battery)+'%';}
 let lastPathAt=0,cachedTarget=null;
 function spawnLevelZeroEntity(){
- // Spawn the Level 0 stalker 30–40 world units from the player, in an open cell.
+ // A towering, malformed shadow figure: too-long limbs, a split face,
+ // exposed rib-like arcs and thin trailing tendrils.
  let chosen=null;
  for(let tries=0;tries<900;tries++){
   const angle=objectiveRng()*Math.PI*2,distance=30+objectiveRng()*10;
@@ -511,25 +512,54 @@ function spawnLevelZeroEntity(){
  }
  if(!chosen)chosen=randomOpenCell(30,40);
  const group=new THREE.Group();group.position.copy(cellCenter(chosen[0],chosen[1]));
- const ink=new THREE.MeshStandardMaterial({color:0x090b0a,roughness:1});
- const eye=new THREE.MeshBasicMaterial({color:0xc7b98a});
- // A tall, narrow, irregular silhouette made from crooked ink-like strands.
- const strand=(points,radius=.075)=>{
+ const ink=new THREE.MeshStandardMaterial({color:0x030504,roughness:1});
+ const edgeInk=new THREE.MeshStandardMaterial({color:0x101512,roughness:1});
+ const socketMat=new THREE.MeshBasicMaterial({color:0x050302});
+ const eyeMat=new THREE.MeshBasicMaterial({color:0xff321d});
+ const toothMat=new THREE.MeshBasicMaterial({color:0xb9ad8a});
+ const strand=(points,radius=.075,material=ink)=>{
   const curve=new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(p[0],p[1],p[2])));
-  const mesh=new THREE.Mesh(new THREE.TubeGeometry(curve,18,radius,5,false),ink);group.add(mesh);
+  const mesh=new THREE.Mesh(new THREE.TubeGeometry(curve,24,radius,5,false),material);group.add(mesh);return mesh;
  };
- strand([[0,.08,0],[-.08,.65,.04],[.06,1.25,-.02],[-.04,1.9,.03],[.02,2.55,0],[.12,3.05,-.03]],.11);
- strand([[-.02,2.3,0],[-.42,2.05,.02],[-.78,1.72,-.04],[-.92,1.12,.02]],.075);
- strand([[.02,2.28,0],[.38,2.02,-.03],[.72,1.62,.04],[.82,.95,0]],.075);
- strand([[-.03,.95,0],[-.28,.62,.04],[-.38,.12,-.02]],.085);
- strand([[.03,.95,0],[.28,.58,-.04],[.42,.08,.03]],.085);
- strand([[-.05,2.82,0],[-.23,3.1,.04],[.05,3.28,-.02],[.22,3.05,.02]],.055);
+ // Narrow, unnaturally tall body and bent spine.
+ strand([[0,.08,0],[-.13,.7,.06],[.08,1.35,-.04],[-.12,2.05,.04],[.06,2.75,-.02],[-.04,3.45,0],[.12,4.05,-.03]],.14);
+ const head=new THREE.Group();head.position.set(.12,3.88,-.015);group.add(head);
+ const skull=new THREE.Mesh(new THREE.SphereGeometry(.29,8,7),ink);skull.scale.set(.72,1.24,.76);skull.rotation.z=-.22;head.add(skull);
+ const brow=new THREE.Mesh(new THREE.BoxGeometry(.48,.105,.13),edgeInk);brow.position.set(0,.09,-.205);brow.rotation.z=-.18;head.add(brow);
  for(const side of [-1,1]){
-  const glint=new THREE.Mesh(new THREE.SphereGeometry(.045,6,5),eye);
-  glint.position.set(side*.105,2.83,-.095);group.add(glint);
+  const socket=new THREE.Mesh(new THREE.SphereGeometry(.105,7,6),socketMat);socket.scale.set(1,.78,.55);socket.position.set(side*.105,.015,-.226);head.add(socket);
+  const eye=new THREE.Mesh(new THREE.SphereGeometry(.052,7,6),eyeMat);eye.position.set(side*.105,.015,-.286);head.add(eye);
+  const glow=new THREE.PointLight(0xff210c,.42,2.8);glow.position.set(side*.11,.02,-.36);head.add(glow);
+ }
+ // A narrow vertical mouth with uneven, pale teeth.
+ strand([[-.12,-.13,-.27],[-.04,-.22,-.3],[.035,-.14,-.3],[.12,-.26,-.27]],.035,edgeInk);
+ for(let i=0;i<5;i++){
+  const tooth=new THREE.Mesh(new THREE.ConeGeometry(.027,.105,4),toothMat);
+  tooth.position.set(-.09+i*.045,-.205-(i%2)*.018,-.305);tooth.rotation.z=Math.PI;head.add(tooth);
+ }
+ // Arms hang far below the waist, then bend back like hooked branches.
+ const armL=strand([[-.08,3.02,0],[-.52,2.82,.02],[-.94,2.35,-.02],[-1.16,1.68,.04],[-1.48,1.22,-.08]],.105);
+ const armR=strand([[.08,3.02,0],[.55,2.78,-.03],[.91,2.38,.03],[1.04,1.72,-.04],[1.38,1.28,-.1]],.105);
+ strand([[-1.48,1.22,-.08],[-1.58,.96,-.12],[-1.46,.84,-.15]],.035,edgeInk);
+ strand([[-1.48,1.22,-.08],[-1.72,1.03,-.11],[-1.78,.91,-.15]],.035,edgeInk);
+ strand([[1.38,1.28,-.1],[1.47,1.02,-.14],[1.42,.88,-.17]],.035,edgeInk);
+ strand([[1.38,1.28,-.1],[1.62,1.08,-.12],[1.7,.94,-.16]],.035,edgeInk);
+ // Long, mismatched legs and feet.
+ strand([[-.08,1.08,0],[-.38,.68,.04],[-.49,.12,-.12],[-.76,.04,-.36]],.12);
+ strand([[.08,1.08,0],[.3,.62,-.04],[.18,.1,.08],[.48,.035,-.3]],.12);
+ // Rib-like curves make the torso look hollow and skeletal without gore.
+ for(let i=0;i<4;i++){
+  const y=1.65+i*.29,w=.31+i*.035;
+  strand([[-.08,y,.02],[-w,y+.13,-.16],[0,y+.05,-.25],[w,y-.04,-.14],[.08,y,.02]],.035,edgeInk);
+ }
+ // Thin back tendrils sway independently as the creature moves.
+ const tendrils=[];
+ for(let i=0;i<3;i++){
+  const side=i-1;
+  tendrils.push(strand([[side*.12,3.25,.12],[side*.42,3.02,.36],[side*.56,2.55,.55],[side*(.72+i*.12),2.15,.7]],.035,edgeInk));
  }
  scene.add(group);
- return {kind:'stalker',group,speed:4.8,limbs:[],phase:Math.random()*6.28,aggro:false,searchTarget:null,nextSearchAt:0,spawnedAt:clock.elapsedTime,relocated:false,nextFallbackTry:0};
+ return {kind:'stalker',group,speed:5.15,limbs:[armL,armR],head,tendrils,phase:Math.random()*6.28,aggro:false,searchTarget:null,nextSearchAt:0,spawnedAt:clock.elapsedTime,relocated:false,nextFallbackTry:0};
 }
 function stalkerWallBlocksSight(fromX,fromZ,toX,toZ){
  const dx=toX-fromX,dz=toZ-fromZ,d=Math.hypot(dx,dz),steps=Math.max(3,Math.ceil(d/1.1));
