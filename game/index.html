@@ -529,7 +529,25 @@ function spawnLevelZeroEntity(){
   glint.position.set(side*.105,2.83,-.095);group.add(glint);
  }
  scene.add(group);
- return {kind:'stalker',group,speed:4.8,limbs:[],phase:Math.random()*6.28,aggro:false,searchTarget:null,nextSearchAt:0};
+ return {kind:'stalker',group,speed:4.8,limbs:[],phase:Math.random()*6.28,aggro:false,searchTarget:null,nextSearchAt:0,spawnedAt:clock.elapsedTime,relocated:false,nextFallbackTry:0};
+}
+function stalkerWallBlocksSight(fromX,fromZ,toX,toZ){
+ const dx=toX-fromX,dz=toZ-fromZ,d=Math.hypot(dx,dz),steps=Math.max(3,Math.ceil(d/1.1));
+ for(let i=1;i<steps;i++){
+  const f=i/steps,x=fromX+dx*f,z=fromZ+dz*f;
+  if(isWallCell(Math.round(x/CELL),Math.round(z/CELL)))return true;
+ }
+ return false;
+}
+function findHiddenStalkerSpot(px,pz){
+ // Choose a clear position 8–10 world units away with a wall between it and the player.
+ for(let i=0;i<180;i++){
+  const angle=(i/180)*Math.PI*2+Math.random()*.035,distance=8+Math.random()*2;
+  const x=px+Math.cos(angle)*distance,z=pz+Math.sin(angle)*distance;
+  if(collides(new THREE.Vector3(x,0,z),.48))continue;
+  if(stalkerWallBlocksSight(px,pz,x,z))return new THREE.Vector3(x,0,z);
+ }
+ return null;
 }
 function pathTarget(actor){
   // Level 1 is a broad, open industrial habitat rather than a maze. Direct
@@ -546,7 +564,14 @@ function pathTarget(actor){
  if(actor.kind==='stalker'){
   // It wanders and searches until the player comes within 29 units, then
   // keeps pursuing. A 20–29 unit trigger band prevents distant instant aggro.
-  if(d<=29)actor.aggro=true;
+  if(!actor.aggro&&t-actor.spawnedAt>=60&&!actor.relocated&&t>=actor.nextFallbackTry){
+   const hiddenSpot=findHiddenStalkerSpot(px,pz);
+   if(hiddenSpot){
+    actor.group.position.copy(hiddenSpot);actor.searchTarget=null;actor.nextSearchAt=0;actor.relocated=true;
+    actor.group.rotation.y=Math.atan2(-(px-hiddenSpot.x),-(pz-hiddenSpot.z));
+   }else actor.nextFallbackTry=t+2;
+  }
+  if(d<=29&&!stalkerWallBlocksSight(ex,ez,px,pz))actor.aggro=true;
   if(actor.aggro)target=new THREE.Vector3(px,0,pz);
   else{
    if(!actor.searchTarget||t>=actor.nextSearchAt||Math.hypot(actor.searchTarget.x-ex,actor.searchTarget.z-ez)<1.6){
