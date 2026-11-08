@@ -582,13 +582,6 @@ function pathTarget(actor){
  if(d<1.55){$('flash').style.opacity=.55;setTimeout(()=>$('flash').style.opacity=0,100);endGame(false)}
  if(d<22&&Math.random()<.002)playTone(actor.kind==='hound'?115:actor.kind==='smiler'?180:78,.22,'sawtooth',.012);
 }
- if(dir.length()>.45){dir.normalize();const next=actor.group.position.clone().addScaledVector(dir,actor.speed*dt);if(!collides(next,actor.kind==='hound'?.55:.42)){travelled=actor.group.position.distanceTo(next);actor.group.position.copy(next)}actor.group.rotation.y=Math.atan2(-dir.x,-dir.z)}
- actor.phase+=travelled*(actor.kind==='hound'?6.5:4.5);actor.blend=THREE.MathUtils.damp(actor.blend||0,travelled>0?1:0,8,dt);actor.limbs.forEach((limb,i)=>{limb.rotation.z=Math.sin(actor.phase)*actor.blend*(i%2===0?.38:-.38)});
- if(actor.kind==='smiler'){actor.group.position.y=Math.sin(t*2.4)*.12;actor.group.children[actor.group.children.length-1].intensity=.35+Math.sin(t*8)*.25}
- if(d<1.55){$('flash').style.opacity=.55;setTimeout(()=>$('flash').style.opacity=0,100);endGame(false)}
- if(d<22&&Math.random()<.002)playTone(actor.kind==='hound'?115:actor.kind==='smiler'?180:78,.22,'sawtooth',.012);
-}
-
 
 function sendNetwork(data){if(multiplayerSocket&&multiplayerSocket.readyState===WebSocket.OPEN)multiplayerSocket.send(JSON.stringify(data))}
 function applySharedProgress(n){found=Math.max(0,Math.min(3,n|0));const count=document.getElementById('count');if(count)count.textContent=found+' / 3';const cells=pickups.filter(p=>p.kind==='cell');cells.forEach((p,i)=>{p.taken=i<found;p.group.visible=!p.taken})}
