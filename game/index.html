@@ -645,6 +645,34 @@ function pathTarget(actor){
   const ux=d>.001?dx/d:1,uz=d>.001?dz/d:0;
   return new THREE.Vector3(px+ux*25,0,pz+uz*25);
  }
+ function moveStalkerSafely(actor,dir,dt){
+  const pos=actor.group.position,speed=actor.speed*dt,radius=.48;
+  if(dir.lengthSq()<.0001)return 0;
+  dir.normalize();
+  const start=pos.clone(),full=start.clone().addScaledVector(dir,speed);
+  if(!collides(full,radius)){pos.copy(full);return pos.distanceTo(start)}
+  // Slide along an open axis when the direct route meets a wall.
+  const xOnly=start.clone();xOnly.x+=dir.x*speed;
+  const zOnly=start.clone();zOnly.z+=dir.z*speed;
+  const canX=!collides(xOnly,radius),canZ=!collides(zOnly,radius);
+  if(canX||canZ){
+   if(canX&&canZ)pos.copy(Math.abs(dir.x)>=Math.abs(dir.z)?xOnly:zOnly);
+   else pos.copy(canX?xOnly:zOnly);
+   return pos.distanceTo(start);
+  }
+  // If both axes are blocked, try either tangent to move around the wall.
+  const sides=[new THREE.Vector3(-dir.z,0,dir.x),new THREE.Vector3(dir.z,0,-dir.x)];
+  sides.sort((a,b)=>{
+   const da=Math.hypot(actor.moveTargetX-(start.x+a.x),actor.moveTargetZ-(start.z+a.z));
+   const db=Math.hypot(actor.moveTargetX-(start.x+b.x),actor.moveTargetZ-(start.z+b.z));
+   return da-db;
+  });
+  for(const side of sides){
+   const step=start.clone().addScaledVector(side,speed);
+   if(!collides(step,radius)){pos.copy(step);return pos.distanceTo(start)}
+  }
+  return 0;
+ }
  function updateEntity(actor,dt,t){
  const px=camera.position.x,pz=camera.position.z,ex=actor.group.position.x,ez=actor.group.position.z;
  const d=Math.hypot(px-ex,pz-ez);let target,travelled=0;
@@ -676,9 +704,9 @@ function pathTarget(actor){
   }
   const dir=new THREE.Vector3(target.x-ex,0,target.z-ez);
   if(dir.length()>.35){
-   dir.normalize();const next=actor.group.position.clone().addScaledVector(dir,actor.speed*dt);
-   if(!collides(next,.42)){travelled=actor.group.position.distanceTo(next);actor.group.position.copy(next)}
-   else if(!actor.aggro){actor.searchTarget=null;actor.nextSearchAt=0}
+   actor.moveTargetX=target.x;actor.moveTargetZ=target.z;
+   travelled=moveStalkerSafely(actor,dir,dt);
+   if(travelled<.001&&!actor.aggro){actor.searchTarget=null;actor.nextSearchAt=0}
    actor.group.rotation.y=Math.atan2(-dir.x,-dir.z);
   }
   actor.phase+=travelled*2.6;
