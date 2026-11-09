@@ -426,7 +426,7 @@ function buildWorld(){
  if(scene)scene.clear();
  loadedChunks.clear();chunkMaps.clear();walls.length=0;pickups.length=0;lights.length=0;garageStations.length=0;breachObstacles.length=0;breachByChunk.clear();activeChunkX=NaN;activeChunkZ=NaN;garageDoorGroup=null;garageDoorOpen=0;garageDoorTarget=0;garageMainLight=null;garageLampMaterial=null;window.lobbyElevator=null;window.lobbyElevatorDoors=[];window.lobbyElevatorOpen=0;
  wallpaperMaterial=null;ceilingMaterial=null;carpetMaterial=null;levelEntities=[];
- scene=new THREE.Scene();scene.background=new THREE.Color(currentLevel===0?0x81794d:0x303633);scene.fog=new THREE.FogExp2(currentLevel===0?0x81794d:0x303633,currentLevel===0?.012:.018);
+ scene=new THREE.Scene();scene.background=new THREE.Color(currentLevel===0?0x81794d:0x303633);scene.fog=new THREE.FogExp2(currentLevel===0?0x81794d:0x303633,currentLevel===0?.018:.018);
  camera=new THREE.PerspectiveCamera(74,innerWidth/innerHeight,.08,180);camera.position.copy(startPos);camera.rotation.order='YXZ';bodyCam=new THREE.PerspectiveCamera(74,innerWidth/innerHeight,.08,180);bodyCam.rotation.order='YXZ';bodyCam.position.copy(startPos);
  if(!renderer){
   renderer=new THREE.WebGLRenderer({antialias:false,powerPreference:'high-performance'});
