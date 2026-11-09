@@ -142,6 +142,20 @@ function ensureChunk(cx,cz){
   }
  }
  const floor=new THREE.Mesh(new THREE.PlaneGeometry(CHUNK*CELL,CHUNK*CELL),makeCarpetMaterial());floor.rotation.x=-Math.PI/2;floor.position.set(cx*CHUNK*CELL, -.28,cz*CHUNK*CELL);group.add(floor);
+ if(currentLevel===0&&cx===2&&cz===1){
+  const pitX=cx*CHUNK*CELL,pitZ=cz*CHUNK*CELL,pitSize=5.2;
+  const floorShape=new THREE.Shape();floorShape.moveTo(-CHUNK*CELL/2,-CHUNK*CELL/2);floorShape.lineTo(CHUNK*CELL/2,-CHUNK*CELL/2);floorShape.lineTo(CHUNK*CELL/2,CHUNK*CELL/2);floorShape.lineTo(-CHUNK*CELL/2,CHUNK*CELL/2);floorShape.closePath();
+  const hole=new THREE.Path();hole.moveTo(-pitSize,-pitSize);hole.lineTo(-pitSize,pitSize);hole.lineTo(pitSize,pitSize);hole.lineTo(pitSize,-pitSize);hole.closePath();floorShape.holes.push(hole);
+  const floorWithPit=new THREE.Mesh(new THREE.ShapeGeometry(floorShape),makeCarpetMaterial());floorWithPit.rotation.x=-Math.PI/2;floorWithPit.position.set(pitX,-.28,pitZ);group.add(floorWithPit);
+  const pitBottom=new THREE.Mesh(new THREE.PlaneGeometry(pitSize*2,pitSize*2),new THREE.MeshStandardMaterial({color:0x080907,roughness:1}));pitBottom.rotation.x=-Math.PI/2;pitBottom.position.set(pitX,-5.8,pitZ);group.add(pitBottom);
+  const edgeMat=new THREE.MeshStandardMaterial({color:0x39372d,roughness:.96});
+  for(const side of [-1,1]){
+   const edgeA=new THREE.Mesh(new THREE.BoxGeometry(pitSize*2+.5,.22,.38),edgeMat);edgeA.position.set(pitX,-.16,pitZ+side*(pitSize+.12));group.add(edgeA);
+   const edgeB=new THREE.Mesh(new THREE.BoxGeometry(.38,.22,pitSize*2+.5),edgeMat);edgeB.position.set(pitX+side*(pitSize+.12),-.16,pitZ);group.add(edgeB);
+  }
+  for(let i=0;i<4;i++){const wall=new THREE.Mesh(new THREE.BoxGeometry(pitSize*2,.16,.18),edgeMat);wall.position.set(pitX,-3-(i*.65),pitZ+(i%2?pitSize:-pitSize));group.add(wall)}
+ }
+
  const ceiling=new THREE.Mesh(new THREE.PlaneGeometry(CHUNK*CELL,CHUNK*CELL),makeCeilingMaterial());ceiling.rotation.x=Math.PI/2;ceiling.position.set(cx*CHUNK*CELL,4.3,cz*CHUNK*CELL);group.add(ceiling);
  // Sparse overhead fluorescent fixtures in the endless Level 0 office.
  // Each chunk gets a fixture sometimes; these lights flicker only occasionally.
@@ -513,7 +527,7 @@ function interact(){
  if(currentLevel===0&&window.lobbyElevator){const inside=Math.abs(camera.position.x)<1.38&&camera.position.z>7.05&&camera.position.z<9.55;if(inside){if(found<3){showToast('ELEVATOR LOCKED — '+(3-found)+' POWER CELLS REMAIN');return}const others=[...remotePlayers.values()].filter(p=>p.level===0);const everyoneInside=others.every(p=>Math.abs(p.target.x)<1.5&&p.target.z>7.05&&p.target.z<9.55);if(!everyoneInside){showToast('WAIT FOR EVERYONE TO ENTER THE ELEVATOR');return}const atButton=Math.hypot(camera.position.x-1.12,camera.position.z-8.0)<.72;if(!atButton){showToast('STEP TO THE ELEVATOR BUTTON AND PRESS E');return}playTone(660,.22,'sine',.08);playTone(880,.5,'sine',.08);transitionLevel(1);return}}
  else if(currentLevel===1&&Array.isArray(window.elevatorCell)&&window.elevatorCell.length>=2){const p=cellCenter(window.elevatorCell[0],window.elevatorCell[1]);if(camera.position.distanceTo(new THREE.Vector3(p.x,1.6,p.z))<4.2){playTone(620,.25,'sine',.08);transitionLevel(0)}}
 }
-function updatePlayer(dt){const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw)),right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));moveVec.set(0,0,0);if(keys.KeyW||keys.ArrowUp)moveVec.add(forward);if(keys.KeyS||keys.ArrowDown)moveVec.sub(forward);if(keys.KeyD||keys.ArrowRight)moveVec.add(right);if(keys.KeyA||keys.ArrowLeft)moveVec.sub(right);const moving=moveVec.lengthSq()>0;const sprint=moving&&(keys.ShiftLeft||keys.ShiftRight)&&stamina>1;const speed=sprint?7.4:4.2;if(moving){moveVec.normalize().multiplyScalar(speed*dt);const next=camera.position.clone().add(moveVec);if(!collides(next))camera.position.x=next.x;if(!collides(new THREE.Vector3(camera.position.x,camera.position.y,next.z)))camera.position.z=next.z;if(performance.now()-lastStep>(sprint?270:440)){playTone(70+Math.random()*20,.035,'triangle',.012);lastStep=performance.now()}}
+function updatePlayer(dt){const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw)),right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));moveVec.set(0,0,0);if(keys.KeyW||keys.ArrowUp)moveVec.add(forward);if(keys.KeyS||keys.ArrowDown)moveVec.sub(forward);if(keys.KeyD||keys.ArrowRight)moveVec.add(right);if(keys.KeyA||keys.ArrowLeft)moveVec.sub(right);const moving=moveVec.lengthSq()>0;const sprint=moving&&(keys.ShiftLeft||keys.ShiftRight)&&stamina>1;const speed=sprint?7.4:4.2;if(moving){moveVec.normalize().multiplyScalar(speed*dt);const next=camera.position.clone().add(moveVec);if(!collides(next))camera.position.x=next.x;if(!collides(new THREE.Vector3(camera.position.x,camera.position.y,next.z)))camera.position.z=next.z;if(currentLevel===0&&Math.abs(camera.position.x-240)<5.2&&Math.abs(camera.position.z-120)<5.2){camera.position.copy(startPos);showToast('YOU FELL INTO THE PIT — RETURNED TO THE GARAGE')}if(performance.now()-lastStep>(sprint?270:440)){playTone(70+Math.random()*20,.035,'triangle',.012);lastStep=performance.now()}}
  localSprinting=sprint;animateLocalAvatar(moving,sprint,dt);
  if(sprint)stamina=Math.max(0,stamina-8*dt);else stamina=Math.min(100,stamina+17*dt);$('stamina').style.width=stamina+'%';battery=Math.max(0,battery-(flashOn?.045:0)*dt);if(battery<=0&&flashOn){flashOn=false;flashlight.visible=false;showToast('FLASHLIGHT BATTERY EMPTY')}if(battery<100&&!flashOn)battery=Math.min(100,battery+.012*dt);$('battery').textContent=Math.round(battery)+'%';}
 let lastPathAt=0,cachedTarget=null;
