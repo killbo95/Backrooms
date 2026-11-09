@@ -645,6 +645,7 @@ function pathTarget(actor){
   const ux=d>.001?dx/d:1,uz=d>.001?dz/d:0;
   return new THREE.Vector3(px+ux*25,0,pz+uz*25);
  }
+ // Robust Level 0 stalker steering: slide around blocked wall faces without clipping through them.
  function moveStalkerSafely(actor,dir,dt){
   const pos=actor.group.position,speed=actor.speed*dt,radius=.48;
   if(dir.lengthSq()<.0001)return 0;
