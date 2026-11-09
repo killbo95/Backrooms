@@ -143,6 +143,21 @@ function ensureChunk(cx,cz){
  }
  const floor=new THREE.Mesh(new THREE.PlaneGeometry(CHUNK*CELL,CHUNK*CELL),makeCarpetMaterial());floor.rotation.x=-Math.PI/2;floor.position.set(cx*CHUNK*CELL, -.28,cz*CHUNK*CELL);group.add(floor);
  const ceiling=new THREE.Mesh(new THREE.PlaneGeometry(CHUNK*CELL,CHUNK*CELL),makeCeilingMaterial());ceiling.rotation.x=Math.PI/2;ceiling.position.set(cx*CHUNK*CELL,4.3,cz*CHUNK*CELL);group.add(ceiling);
+ // Sparse overhead fluorescent fixtures in the endless Level 0 office.
+ // Each chunk gets a fixture sometimes; these lights flicker only occasionally.
+ if(currentLevel===0&&!(cx===0&&cz===0)){
+  const lightRnd=randomFor(cx+1807,cz-991);
+  if(lightRnd()<.58){
+   const lx=(cx*CHUNK+2+Math.floor(lightRnd()*11)-7)*CELL;
+   const lz=(cz*CHUNK+2+Math.floor(lightRnd()*11)-7)*CELL;
+   const fixtureMat=new THREE.MeshStandardMaterial({color:0xe4dcae,emissive:0xffe8ad,emissiveIntensity:1.15,roughness:.42});
+   const fixture=new THREE.Mesh(new THREE.BoxGeometry(2.2,.07,.72),fixtureMat);
+   fixture.position.set(lx,4.12,lz);group.add(fixture);
+   const bulb=new THREE.PointLight(0xffe8b7,2.15,23,1.65);
+   bulb.position.set(lx,3.82,lz);group.add(bulb);
+   lights.push({light:bulb,material:fixtureMat,base:2.15,baseEmissive:1.15,nextFlickerAt:lightRnd()*5,flickerUntil:0,chunkKey:key});
+  }
+ }
  // Compact Level 0 spawn garage, with usable equipment stations.
  if(currentLevel===0&&cx===0&&cz===0){
   const concrete=new THREE.MeshStandardMaterial({color:0x777d7e,roughness:.94});
@@ -814,7 +829,7 @@ function updateRemotePlayers(dt){remotePlayers.forEach(p=>{p.group.position.lerp
  p.group.position.y=THREE.MathUtils.damp(p.group.position.y,moving?Math.abs(Math.sin(p.phase*2))*(running?.075:.04):0,10,dt);
  p.group.rotation.z=THREE.MathUtils.damp(p.group.rotation.z,moving&&running?Math.sin(p.phase)*.035:0,8,dt);})}
 
-function updateWorld(t){pickups.forEach(p=>{if(!p.taken){if(p.kind==='cell'){p.group.rotation.y+=.012;p.group.position.y=1.05+Math.sin(t*2.2)*.12}else if(p.kind==='almond'){p.group.rotation.y+=.006;p.group.position.y=p.baseY+Math.sin(t*1.8)*.035}}});flashlight.intensity=flashOn?55:0;if(garageDoorGroup){garageDoorOpen=THREE.MathUtils.damp(garageDoorOpen,garageDoorTarget,3.2,.033);garageDoorGroup.position.y=garageDoorOpen*4.35;}if(currentLevel===0&&window.lobbyElevatorDoors?.length){const target=found===3?1:0;window.lobbyElevatorOpen=THREE.MathUtils.damp(window.lobbyElevatorOpen,target,4,.033);window.lobbyElevatorDoors[0].position.x=-.86-window.lobbyElevatorOpen*.82;window.lobbyElevatorDoors[1].position.x=.86+window.lobbyElevatorOpen*.82;}}
+function updateWorld(t){pickups.forEach(p=>{if(!p.taken){if(p.kind==='cell'){p.group.rotation.y+=.012;p.group.position.y=1.05+Math.sin(t*2.2)*.12}else if(p.kind==='almond'){p.group.rotation.y+=.006;p.group.position.y=p.baseY+Math.sin(t*1.8)*.035}}});for(const l of lights){if(t>=l.nextFlickerAt){l.flickerUntil=t+.08+Math.random()*.2;l.nextFlickerAt=t+2.5+Math.random()*8}const flickering=t<l.flickerUntil,amount=flickering?(Math.random()<.45?.08:.35):1;l.light.intensity=l.base*amount;l.material.emissiveIntensity=l.baseEmissive*(flickering?amount:1)}flashlight.intensity=flashOn?55:0;if(garageDoorGroup){garageDoorOpen=THREE.MathUtils.damp(garageDoorOpen,garageDoorTarget,3.2,.033);garageDoorGroup.position.y=garageDoorOpen*4.35;}if(currentLevel===0&&window.lobbyElevatorDoors?.length){const target=found===3?1:0;window.lobbyElevatorOpen=THREE.MathUtils.damp(window.lobbyElevatorOpen,target,4,.033);window.lobbyElevatorDoors[0].position.x=-.86-window.lobbyElevatorOpen*.82;window.lobbyElevatorDoors[1].position.x=.86+window.lobbyElevatorOpen*.82;}}
 function animate(){if(!running)return;requestAnimationFrame(animate);const now=performance.now();if(now-lastFrameAt<1000/30)return;lastFrameAt=now;const dt=Math.min(clock.getDelta(),.05),t=clock.elapsedTime;updateChunks();updatePlayer(dt);let nearbyStation=null,nearbyDistance=3.4;for(const item of garageStations){const d=Math.hypot(camera.position.x-item.x,camera.position.z-item.z);if(d<nearbyDistance){nearbyStation=item;nearbyDistance=d}}if(nearbyStation)message(nearbyStation.name);else if(!pickups.some(p=>!p.taken&&camera.position.distanceTo(p.group.position)<2.7))message('');(Array.isArray(levelEntities)?levelEntities:[]).forEach(actor=>updateEntity(actor,dt,t));updateWorld(t);updateRemotePlayers(dt);if(multiplayerSocket&&multiplayerSocket.readyState===WebSocket.OPEN&&now-lastNetSend>100){lastNetSend=now;sendNetwork({type:'state',x:camera.position.x,y:camera.position.y,z:camera.position.z,yaw,pitch,level:currentLevel,flashOn,sprinting:localSprinting})}let renderCamera=camera;
  if(bodyCamTargetId){
   const watched=remotePlayers.get(bodyCamTargetId);
